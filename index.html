@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ARC Lookup</title>
+<style>
+  body {
+    background:#000;
+    color:#fff;
+    font-family:Segoe UI, sans-serif;
+    padding:20px;
+  }
+  input, button {
+    font-size:22px;
+    padding:12px;
+    width:95%;
+    margin-bottom:15px;
+  }
+  .item-name {
+    font-size:26px;
+    font-weight:bold;
+  }
+  .line {
+    margin:4px 0;
+    font-size:18px;
+  }
+  hr {
+    border:1px solid #333;
+    margin:10px 0;
+  }
+</style>
+</head>
+<body>
+
+<button onclick="startVoice()">🎤 Voice Search</button>
+<input id="search" placeholder="Type item name..." autofocus>
+<div id="result"></div>
+
+<script>
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
+
+const data = [];
+
+fetch(sheetURL)
+  .then(r => r.text())
+  .then(text => {
+    const rows = text.replace(/\r/g,"").split("\n");
+    rows.shift();
+
+    for (let r of rows) {
+      if (!r.trim()) continue;
+      const f = csvSplit(r);
+      data.push({
+        name: f[0] || "",
+        rarity: f[1] || "",
+        rec1: f[2] || "",
+        rec2: f[3] || "",
+        price: f[4] || ""
+      });
+    }
+});
+
+function csvSplit(row) {
+  let out=[], field="", q=false;
+  for (const ch of row) {
+    if (ch === '"') { q = !q; continue; }
+    if (ch === ',' && !q) { out.push(field); field=""; continue; }
+    field += ch;
+  }
+  out.push(field);
+  return out;
+}
+
+/* ===== VOICE SEARCH (works in Chrome/Edge) ===== */
+let rec;
+if ('webkitSpeechRecognition' in window) {
+  rec = new webkitSpeechRecognition();
+  rec.lang = "en-US";
+  rec.continuous = false;
+  rec.interimResults = false;
+
+  rec.onresult = (e) => {
+    const spoken = e.results[0][0].transcript;
+    document.getElementById("search").value = spoken;
+    runSearch(spoken);
+  };
+}
+
+function startVoice() {
+  if (!rec) {
+    alert("Voice not supported in this browser. Use Chrome.");
+    return;
+  }
+  rec.start();
+}
+
+/* ===== FAST SEARCH ===== */
+let timer = null;
+document.getElementById("search").addEventListener("input", function () {
+  clearTimeout(timer);
+  const q = this.value.trim();
+  timer = setTimeout(() => runSearch(q), 100);
+});
+
+function runSearch(query) {
+  const q = query.toLowerCase();
+  const out = document.getElementById("result");
+  out.innerHTML = "";
+  if (!q) return;
+
+  const matches = data.filter(d => d.name.toLowerCase().includes(q));
+  if (!matches.length) {
+    out.innerHTML = "<div>No match</div>";
+    return;
+  }
+
+  let html = "";
+
+  matches.forEach(item => {
+    const rarity = item.rarity.toLowerCase();
+    let nameColor = "white";
+
+    if (rarity.includes("uncommon")) nameColor = "#00ff00";
+    else if (rarity.includes("rare")) nameColor = "#1e90ff";
+    else if (rarity.includes("epic")) nameColor = "#ff00ff";
+    else if (rarity.includes("legendary")) nameColor = "#ffd700";
+
+    const priceNum = parseInt(item.price.replace(/[^0-9]/g,"")) || 0;
+    let priceColor = "white";
+
+    if (priceNum >= 1000 && priceNum <= 2000) priceColor = "#00ff00";
+    else if (priceNum >= 2001 && priceNum <= 5000) priceColor = "#ff69b4";
+    else if (priceNum >= 5001) priceColor = "#ffd700";
+
+    html += `
+      <div class="item-name" style="color:${nameColor}">${item.name}</div>
+      ${item.rec1 ? `<div class="line">${item.rec1}</div>` : ""}
+      ${item.rec2 ? `<div class="line">${item.rec2}</div>` : ""}
+      ${item.price ? `<div class="line" style="color:${priceColor}; font-weight:bold;">${item.price}</div>` : ""}
+      <hr>
+    `;
+  });
+
+  out.innerHTML = html;
+}
+</script>
+</body>
+</html>
