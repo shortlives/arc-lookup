@@ -24,6 +24,12 @@
     margin:4px 0;
     font-size:18px;
   }
+  .section-header {
+    margin:10px 0 4px 0;
+    font-size:20px;
+    font-weight:bold;
+    color:#ffa500;
+  }
   hr {
     border:1px solid #333;
     margin:10px 0;
@@ -32,7 +38,6 @@
 </head>
 <body>
 
-<button onclick="startVoice()">🎤 Voice Search</button>
 <input id="search" placeholder="Type item name..." autofocus>
 <div id="result"></div>
 
@@ -45,53 +50,42 @@ fetch(sheetURL)
   .then(r => r.text())
   .then(text => {
     const rows = text.replace(/\r/g,"").split("\n");
-    rows.shift();
+    rows.shift(); // remove header row
 
     for (let r of rows) {
       if (!r.trim()) continue;
       const f = csvSplit(r);
       data.push({
-        name: f[0] || "",
-        rarity: f[1] || "",
-        rec1: f[2] || "",
-        rec2: f[3] || "",
-        price: f[4] || ""
+        // A–J: Name, Rarity, RecyclesTo1, RecyclesTo2, Sell Price,
+        //      Category, Keep1, Keep2, Keep3, My Notes
+        name:      f[0] || "",
+        rarity:    f[1] || "",
+        recycle1:  f[2] || "",
+        recycle2:  f[3] || "",
+        sellPrice: f[4] || "",
+        category:  f[5] || "",
+        keep1:     f[6] || "",
+        keep2:     f[7] || "",
+        keep3:     f[8] || "",
+        notes:     f[9] || ""
       });
     }
 });
 
 function csvSplit(row) {
-  let out=[], field="", q=false;
+  let out = [], field = "", q = false;
   for (const ch of row) {
     if (ch === '"') { q = !q; continue; }
-    if (ch === ',' && !q) { out.push(field); field=""; continue; }
+    if (ch === ',' && !q) { out.push(field); field = ""; continue; }
     field += ch;
   }
   out.push(field);
   return out;
 }
 
-/* ===== VOICE SEARCH (works in Chrome/Edge) ===== */
-let rec;
-if ('webkitSpeechRecognition' in window) {
-  rec = new webkitSpeechRecognition();
-  rec.lang = "en-US";
-  rec.continuous = false;
-  rec.interimResults = false;
-
-  rec.onresult = (e) => {
-    const spoken = e.results[0][0].transcript;
-    document.getElementById("search").value = spoken;
-    runSearch(spoken);
-  };
-}
-
-function startVoice() {
-  if (!rec) {
-    alert("Voice not supported in this browser. Use Chrome.");
-    return;
-  }
-  rec.start();
+// Strip leading quantity like "2x " or "3 x " from recycle strings
+function extractItemNameFromRecycle(str) {
+  return str.replace(/^\s*\d+\s*x\s*/i, "").trim();
 }
 
 /* ===== FAST SEARCH ===== */
@@ -116,8 +110,9 @@ function runSearch(query) {
 
   let html = "";
 
+  // ==== MAIN ITEM CARDS ====
   matches.forEach(item => {
-    const rarity = item.rarity.toLowerCase();
+    const rarity = (item.rarity || "").toLowerCase();
     let nameColor = "white";
 
     if (rarity.includes("uncommon")) nameColor = "#00ff00";
@@ -125,21 +120,67 @@ function runSearch(query) {
     else if (rarity.includes("epic")) nameColor = "#ff00ff";
     else if (rarity.includes("legendary")) nameColor = "#ffd700";
 
-    const priceNum = parseInt(item.price.replace(/[^0-9]/g,"")) || 0;
+    const priceNum = parseInt((item.sellPrice || "").replace(/[^0-9]/g,"")) || 0;
     let priceColor = "white";
 
     if (priceNum >= 1000 && priceNum <= 2000) priceColor = "#00ff00";
     else if (priceNum >= 2001 && priceNum <= 5000) priceColor = "#ff69b4";
     else if (priceNum >= 5001) priceColor = "#ffd700";
 
+    const recycleParts = [];
+    if (item.recycle1) recycleParts.push(item.recycle1);
+    if (item.recycle2) recycleParts.push(item.recycle2);
+
     html += `
       <div class="item-name" style="color:${nameColor}">${item.name}</div>
-      ${item.rec1 ? `<div class="line">${item.rec1}</div>` : ""}
-      ${item.rec2 ? `<div class="line">${item.rec2}</div>` : ""}
-      ${item.price ? `<div class="line" style="color:${priceColor}; font-weight:bold;">${item.price}</div>` : ""}
+      ${item.rarity ? `<div class="line">Rarity: ${item.rarity}</div>` : ""}
+      ${item.category ? `<div class="line">Category: ${item.category}</div>` : ""}
+      ${item.sellPrice ? `<div class="line" style="color:${priceColor}; font-weight:bold;">Sell Price: ${item.sellPrice}</div>` : ""}
+      ${recycleParts.length ? `<div class="line">Recycles To: ${recycleParts.join(", ")}</div>` : ""}
+      ${item.keep1 ? `<div class="line">Keep (Q/W 1): ${item.keep1}</div>` : ""}
+      ${item.keep2 ? `<div class="line">Keep (Q/W 2): ${item.keep2}</div>` : ""}
+      ${item.keep3 ? `<div class="line">Keep (Q/W 3): ${item.keep3}</div>` : ""}
+      ${item.notes ? `<div class="line">Notes: ${item.notes}</div>` : ""}
       <hr>
     `;
   });
+
+  // ==== REVERSE RECYCLE LOOKUP ====
+  // Choose a "target item name" for reverse lookup:
+  // Prefer an exact match; otherwise use the first match.
+  const exact = data.find(d => d.name.toLowerCase() === q);
+  const targetName = exact ? exact.name : matches[0].name;
+  const targetNameLower = targetName.toLowerCase();
+
+  const recyclers = data.filter(d => {
+    // ignore empty rows
+    if (!d.recycle1 && !d.recycle2) return false;
+
+    const r1 = extractItemNameFromRecycle(d.recycle1 || "").toLowerCase();
+    const r2 = extractItemNameFromRecycle(d.recycle2 || "").toLowerCase();
+
+    // Is this item something you could recycle to get targetName?
+    const givesTarget = (r1 === targetNameLower || r2 === targetNameLower);
+
+    // Don't include the item itself as a "source"
+    const isSameItem = d.name.toLowerCase() === targetNameLower;
+
+    return givesTarget && !isSameItem;
+  });
+
+  if (recyclers.length) {
+    html += `<div class="section-header">Items that recycle into ${targetName}:</div>`;
+    recyclers.forEach(src => {
+      const srcRecycleParts = [];
+      if (src.recycle1) srcRecycleParts.push(src.recycle1);
+      if (src.recycle2) srcRecycleParts.push(src.recycle2);
+
+      html += `
+        <div class="line">• ${src.name}</div>
+        ${srcRecycleParts.length ? `<div class="line" style="margin-left:16px;">Recycles To: ${srcRecycleParts.join(", ")}</div>` : ""}
+      `;
+    });
+  }
 
   out.innerHTML = html;
 }
