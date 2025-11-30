@@ -34,6 +34,24 @@
     border:1px solid #333;
     margin:10px 0;
   }
+  .debug-block {
+    margin:4px 0;
+    font-size:14px;
+    color:#aaa;
+  }
+  details.debug {
+    margin-top:6px;
+    margin-bottom:4px;
+    border:1px solid #333;
+    padding:4px 8px;
+    border-radius:4px;
+    background:#111;
+  }
+  details.debug summary {
+    cursor:pointer;
+    font-size:14px;
+    color:#0af;
+  }
 </style>
 </head>
 <body>
@@ -42,23 +60,43 @@
 <div id="result"></div>
 
 <script>
-// ===== MAIN ITEM DATA (existing sheet) =====
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
+// ===== MAIN ITEM DATA (existing sheet: your cheat sheet) =====
+const sheetURL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
 
-// ===== NOTES SHEET (second tab in your doc) =====
+// ===== SHARED NOTES SHEET (second tab in your doc) =====
 // Doc ID: 1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U
 // gid:    732163012
-// Format: A = Item Name, B = My Notes
-const notesURL = "https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/export?format=csv&gid=732163012";
+// Columns: A = Item Name, B = My Notes
+const notesURL =
+  "https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/export?format=csv&gid=732163012";
 
-const data = [];        // main item data
+// ===== EXTERNAL GAME DATA SOURCES =====
+
+// MetaForge ARC Raiders API (items)
+const metaForgeURL = "https://metaforge.app/api/arc-raiders/items";
+
+// RaidTheory arcraiders-data (items JSON; path assumed)
+const raidTheoryURL =
+  "https://raw.githubusercontent.com/RaidTheory/arcraiders-data/main/items.json";
+
+// ---- Local data structures ----
+const data = [];        // main item data from your sheet
 const notesMap = {};    // itemName (lowercase) -> note text
 
-// ---- Load main item data ----
+let metaForgeData = [];
+let raidTheoryData = [];
+let metaForgeByName = {};   // lower(name) -> object
+let raidTheoryByName = {};  // lower(name) -> object
+
+let metaForgeLoaded = false;
+let raidTheoryLoaded = false;
+
+// ---- Load main item data (your cheat sheet) ----
 fetch(sheetURL)
   .then(r => r.text())
   .then(text => {
-    const rows = text.replace(/\r/g,"").split("\n");
+    const rows = text.replace(/\r/g, "").split("\n");
     rows.shift(); // header row
 
     for (let r of rows) {
@@ -79,14 +117,17 @@ fetch(sheetURL)
         notes:     f[9] || ""
       });
     }
+  })
+  .catch(err => {
+    console.error("Error loading main sheet:", err);
   });
 
 // ---- Load shared notes from second tab ----
 fetch(notesURL)
   .then(r => r.text())
   .then(text => {
-    const rows = text.replace(/\r/g,"").split("\n");
-    rows.shift(); // header row (assumed: Item Name, My Notes)
+    const rows = text.replace(/\r/g, "").split("\n");
+    rows.shift(); // header row: Item Name, My Notes
 
     for (let r of rows) {
       if (!r.trim()) continue;
@@ -96,6 +137,37 @@ fetch(notesURL)
       if (!itemName || !noteText) continue;
       notesMap[itemName.toLowerCase()] = noteText;
     }
+  })
+  .catch(err => {
+    console.error("Error loading notes sheet:", err);
+  });
+
+// ---- Load MetaForge items ----
+fetch(metaForgeURL)
+  .then(r => r.json())
+  .then(json => {
+    // Some APIs wrap data, some return array directly; handle both
+    metaForgeData = Array.isArray(json) ? json : (json.data || json.items || []);
+    metaForgeByName = indexByName(metaForgeData, ["name", "itemName", "label"]);
+    metaForgeLoaded = true;
+    console.log("MetaForge items loaded:", metaForgeData.length);
+  })
+  .catch(err => {
+    console.error("Error loading MetaForge API:", err);
+  });
+
+// ---- Load RaidTheory items ----
+fetch(raidTheoryURL)
+  .then(r => r.json())
+  .then(json => {
+    // In this repo it's usually an array of item objects
+    raidTheoryData = Array.isArray(json) ? json : (json.items || []);
+    raidTheoryByName = indexByName(raidTheoryData, ["name", "itemName", "label"]);
+    raidTheoryLoaded = true;
+    console.log("RaidTheory items loaded:", raidTheoryData.length);
+  })
+  .catch(err => {
+    console.error("Error loading RaidTheory data:", err);
   });
 
 // ---- CSV splitter ----
@@ -108,6 +180,24 @@ function csvSplit(row) {
   }
   out.push(field);
   return out;
+}
+
+// ---- Index arbitrary array of objects by name-like key ----
+function indexByName(arr, possibleNameKeys) {
+  const map = {};
+  arr.forEach(obj => {
+    if (!obj || typeof obj !== "object") return;
+    let nm = null;
+    for (const key of possibleNameKeys) {
+      if (typeof obj[key] === "string" && obj[key].trim()) {
+        nm = obj[key].trim();
+        break;
+      }
+    }
+    if (!nm) return;
+    map[nm.toLowerCase()] = obj;
+  });
+  return map;
 }
 
 // Strip "2x " patterns to match names (e.g. "2x ARC Motion Core" -> "ARC Motion Core")
@@ -168,6 +258,11 @@ function runSearch(query) {
     const noteFromMap = notesMap[item.name.toLowerCase()];
     const noteText = noteFromMap || item.notes;
 
+    // Lookups in external sources for debug mode
+    const key = item.name.toLowerCase();
+    const mfItem = metaForgeByName[key];
+    const rtItem = raidTheoryByName[key];
+
     html += `
       <div class="item-name" style="color:${nameColor}">${item.name}</div>
       ${item.rarity ? `<div class="line">Rarity: ${item.rarity}</div>` : ""}
@@ -176,6 +271,7 @@ function runSearch(query) {
       ${recycleParts.length ? `<div class="line">Recycles To: ${recycleParts.join(", ")}</div>` : ""}
       ${questParts.length ? `<div class="line">Quest: ${questParts.join(", ")}</div>` : ""}
       ${noteText ? `<div class="line">Notes: ${noteText}</div>` : ""}
+      ${buildDebugBlock(mfItem, rtItem)}
       <hr>
     `;
   });
@@ -206,7 +302,46 @@ function runSearch(query) {
     });
   }
 
+  // Attribution / debug footer
+  html += `
+    <hr>
+    <div class="line" style="font-size:12px;color:#777;">
+      Data sources: Main sheet (your cheat data) + MetaForge API + RaidTheory arcraiders-data.
+      Debug shows which external sources matched each item.
+    </div>
+  `;
+
   out.innerHTML = html;
+}
+
+// Build debug detail block for each item
+function buildDebugBlock(mfItem, rtItem) {
+  const mfStatus = metaForgeLoaded
+    ? (mfItem ? "found" : "not found")
+    : "loading…";
+  const rtStatus = raidTheoryLoaded
+    ? (rtItem ? "found" : "not found")
+    : "loading…";
+
+  // Limit key listing so it doesn't explode
+  const mfKeys = mfItem ? Object.keys(mfItem).slice(0, 20) : [];
+  const rtKeys = rtItem ? Object.keys(rtItem).slice(0, 20) : [];
+
+  return `
+    <details class="debug">
+      <summary>Debug: Data sources (MetaForge: ${mfStatus}, RaidTheory: ${rtStatus})</summary>
+      <div class="debug-block">
+        MetaForge: ${mfStatus}${
+          mfKeys.length ? `<br>Keys: ${mfKeys.join(", ")}` : ""
+        }
+      </div>
+      <div class="debug-block">
+        RaidTheory: ${rtStatus}${
+          rtKeys.length ? `<br>Keys: ${rtKeys.join(", ")}` : ""
+        }
+      </div>
+    </details>
+  `;
 }
 </script>
 </body>
