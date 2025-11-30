@@ -42,20 +42,31 @@
 <div id="result"></div>
 
 <script>
+// ===== MAIN ITEM DATA (existing sheet) =====
 const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
 
-const data = [];
+// ===== NOTES SHEET (second tab in your doc) =====
+// Doc ID: 1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U
+// gid:    732163012
+// Format: A = Item Name, B = My Notes
+const notesURL = "https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/export?format=csv&gid=732163012";
 
+const data = [];        // main item data
+const notesMap = {};    // itemName (lowercase) -> note text
+
+// ---- Load main item data ----
 fetch(sheetURL)
   .then(r => r.text())
   .then(text => {
     const rows = text.replace(/\r/g,"").split("\n");
-    rows.shift(); // remove header row
+    rows.shift(); // header row
 
     for (let r of rows) {
       if (!r.trim()) continue;
       const f = csvSplit(r);
       data.push({
+        // A–J: Name, Rarity, RecyclesTo1, RecyclesTo2, Sell Price,
+        //      Category, Keep1, Keep2, Keep3, My Notes
         name:      f[0] || "",
         rarity:    f[1] || "",
         recycle1:  f[2] || "",
@@ -68,8 +79,26 @@ fetch(sheetURL)
         notes:     f[9] || ""
       });
     }
-});
+  });
 
+// ---- Load shared notes from second tab ----
+fetch(notesURL)
+  .then(r => r.text())
+  .then(text => {
+    const rows = text.replace(/\r/g,"").split("\n");
+    rows.shift(); // header row (assumed: Item Name, My Notes)
+
+    for (let r of rows) {
+      if (!r.trim()) continue;
+      const f = csvSplit(r);
+      const itemName = (f[0] || "").trim();
+      const noteText = (f[1] || "").trim();
+      if (!itemName || !noteText) continue;
+      notesMap[itemName.toLowerCase()] = noteText;
+    }
+  });
+
+// ---- CSV splitter ----
 function csvSplit(row) {
   let out = [], field = "", q = false;
   for (const ch of row) {
@@ -81,7 +110,7 @@ function csvSplit(row) {
   return out;
 }
 
-// Strip "2x " patterns to match names
+// Strip "2x " patterns to match names (e.g. "2x ARC Motion Core" -> "ARC Motion Core")
 function extractItemNameFromRecycle(str) {
   return str.replace(/^\s*\d+\s*x\s*/i, "").trim();
 }
@@ -135,6 +164,10 @@ function runSearch(query) {
     if (item.keep2) questParts.push(item.keep2);
     if (item.keep3) questParts.push(item.keep3);
 
+    // Notes preference: shared notes tab overrides main-sheet notes
+    const noteFromMap = notesMap[item.name.toLowerCase()];
+    const noteText = noteFromMap || item.notes;
+
     html += `
       <div class="item-name" style="color:${nameColor}">${item.name}</div>
       ${item.rarity ? `<div class="line">Rarity: ${item.rarity}</div>` : ""}
@@ -142,7 +175,7 @@ function runSearch(query) {
       ${item.sellPrice ? `<div class="line" style="color:${priceColor}; font-weight:bold;">Sell Price: ${item.sellPrice}</div>` : ""}
       ${recycleParts.length ? `<div class="line">Recycles To: ${recycleParts.join(", ")}</div>` : ""}
       ${questParts.length ? `<div class="line">Quest: ${questParts.join(", ")}</div>` : ""}
-      ${item.notes ? `<div class="line">Notes: ${item.notes}</div>` : ""}
+      ${noteText ? `<div class="line">Notes: ${noteText}</div>` : ""}
       <hr>
     `;
   });
