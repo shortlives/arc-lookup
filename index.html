@@ -1,954 +1,208 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Simple Solutions IT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Simple Solutions IT LLC - Tech help at home and in the office for the Golden Isles area." />
-
-  <!-- Optional Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap" rel="stylesheet" />
-
-  <style>
-    :root {
-      --bg: #050816;
-      --bg-alt: #0b1020;
-      --accent: #4cc9f0;
-      --accent-soft: rgba(76, 201, 240, 0.12);
-      --accent-2: #f72585;
-      --text-main: #f5f5f7;
-      --text-muted: #b4b4c0;
-      --card-bg: rgba(13, 17, 33, 0.96);
-      --border-subtle: rgba(255, 255, 255, 0.06);
-      --shadow-soft: 0 24px 80px rgba(0, 0, 0, 0.45);
-      --radius-lg: 18px;
-      --radius-pill: 999px;
-      --max-width: 960px;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: radial-gradient(circle at top, #141b36 0, #050816 55%, #01010a 100%);
-      color: var(--text-main);
-      line-height: 1.5;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    /* Layout */
-
-    .page {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    header,
-    main,
-    footer {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      padding: 16px;
-    }
-
-    .inner {
-      width: 100%;
-      max-width: var(--max-width);
-    }
-
-    /* Top bar */
-
-    .top-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 10px 18px;
-      background: linear-gradient(135deg, rgba(12, 18, 40, 0.9), rgba(15, 12, 41, 0.9));
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-soft);
-      border: 1px solid var(--border-subtle);
-      position: sticky;
-      top: 12px;
-      z-index: 20;
-      backdrop-filter: blur(16px);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .brand-logo {
-      width: 40px;
-      height: 40px;
-      border-radius: 14px;
-      background: radial-gradient(circle at 20% 0%, #f72585 0, #7209b7 35%, #4361ee 70%, #4cc9f0 100%);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 20px;
-      color: #fff;
-      letter-spacing: 0.03em;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-    }
-
-    .brand-text {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .brand-name {
-      font-weight: 700;
-      font-size: 18px;
-    }
-
-    .brand-tagline {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .top-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
-    .chip {
-      border-radius: var(--radius-pill);
-      border: 1px solid var(--border-subtle);
-      padding: 6px 12px;
-      font-size: 13px;
-      color: var(--text-muted);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(8, 10, 25, 0.9);
-      backdrop-filter: blur(10px);
-    }
-
-    .chip-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.8);
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 7px 14px;
-      border-radius: var(--radius-pill);
-      border: 1px solid transparent;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      cursor: pointer;
-      background: var(--accent);
-      color: #050816;
-      box-shadow: 0 10px 30px rgba(76, 201, 240, 0.3);
-      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 16px 40px rgba(76, 201, 240, 0.35);
-      text-decoration: none;
-    }
-
-    .btn-secondary {
-      background: rgba(11, 15, 35, 0.9);
-      color: var(--text-main);
-      border-color: var(--border-subtle);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-    }
-
-    .btn-secondary:hover {
-      background: rgba(18, 23, 55, 0.95);
-    }
-
-    /* Hero */
-
-    .hero-wrap {
-      margin-top: 22px;
-      display: grid;
-      grid-template-columns: minmax(0, 3fr) minmax(0, 2.4fr);
-      gap: 24px;
-      align-items: stretch;
-    }
-
-    .hero-card,
-    .info-card {
-      background: var(--card-bg);
-      border-radius: 22px;
-      padding: 24px 26px;
-      box-shadow: var(--shadow-soft);
-      border: 1px solid var(--border-subtle);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at top left, rgba(76, 201, 240, 0.16), transparent 55%),
-                  radial-gradient(circle at bottom right, rgba(247, 37, 133, 0.12), transparent 55%);
-      opacity: 0.8;
-      pointer-events: none;
-    }
-
-    .hero-content {
-      position: relative;
-      z-index: 1;
-    }
-
-    .eyebrow {
-      font-size: 12px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-
-    h1 {
-      margin: 0 0 10px;
-      font-size: clamp(28px, 3.1vw, 34px);
-      line-height: 1.1;
-    }
-
-    .owner-name {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 14px;
-    }
-
-    .hero-text {
-      font-size: 15px;
-      color: var(--text-main);
-      max-width: 34rem;
-      margin-bottom: 18px;
-    }
-
-    .hero-text span {
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    .hero-cta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .hero-meta {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .hero-meta strong {
-      color: var(--text-main);
-    }
-
-    /* Owner / contact card */
-
-    .info-card-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-
-    .avatar {
-      width: 54px;
-      height: 54px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 10%, #f9e2ff 0, #f72585 40%, #3a0ca3 85%);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 22px;
-      color: #fff;
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
-      overflow: hidden;
-    }
-
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .info-title {
-      font-weight: 600;
-    }
-
-    .info-subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    .info-list {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      font-size: 14px;
-      color: var(--text-main);
-    }
-
-    .info-list li {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 6px 0;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
-    }
-
-    .info-list li:last-child {
-      border-bottom: none;
-    }
-
-    .info-label {
-      color: var(--text-muted);
-      font-size: 13px;
-    }
-
-    .info-value {
-      text-align: right;
-    }
-
-    .info-actions {
-      margin-top: 14px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .social-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-      color: var(--accent);
-    }
-
-    /* Services */
-
-    .section {
-      margin-top: 40px;
-      margin-bottom: 10px;
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .section-title {
-      font-size: 22px;
-      margin: 0;
-    }
-
-    .section-subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin: 2px 0 0;
-    }
-
-    .services-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-    }
-
-    .service-card {
-      background: var(--card-bg);
-      border-radius: 18px;
-      padding: 16px 16px 14px;
-      border: 1px solid var(--border-subtle);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .service-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at top, rgba(76, 201, 240, 0.12), transparent 55%);
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      pointer-events: none;
-    }
-
-    .service-card:hover::before {
-      opacity: 1;
-    }
-
-    .service-label {
-      font-size: 10px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 6px;
-    }
-
-    .service-title {
-      font-size: 16px;
-      margin: 0 0 4px;
-    }
-
-    .service-text {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin: 0 0 8px;
-    }
-
-    .service-note {
-      font-size: 12px;
-      color: var(--text-muted);
-      opacity: 0.85;
-    }
-
-    /* Contact + forms */
-
-    .contact-grid {
-      margin-top: 30px;
-      display: grid;
-      grid-template-columns: minmax(0, 3fr) minmax(0, 2.1fr);
-      gap: 24px;
-    }
-
-    .contact-card {
-      background: var(--card-bg);
-      border-radius: 18px;
-      padding: 20px 18px 18px;
-      border: 1px solid var(--border-subtle);
-      box-shadow: var(--shadow-soft);
-    }
-
-    .contact-card-header {
-      margin-bottom: 10px;
-    }
-
-    .contact-card-header h2 {
-      margin: 0;
-      font-size: 18px;
-    }
-
-    .contact-card-header p {
-      margin: 4px 0 0;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-
-    form {
-      display: grid;
-      gap: 10px;
-      margin-top: 8px;
-    }
-
-    label {
-      font-size: 13px;
-      color: var(--text-muted);
-      display: block;
-      margin-bottom: 2px;
-    }
-
-    input,
-    textarea {
-      width: 100%;
-      padding: 9px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      background: rgba(5, 8, 24, 0.85);
-      color: var(--text-main);
-      font-size: 14px;
-      outline: none;
-      transition: border 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-    }
-
-    input::placeholder,
-    textarea::placeholder {
-      color: #6b7280;
-    }
-
-    input:focus,
-    textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(76, 201, 240, 0.35);
-      background: rgba(8, 11, 32, 0.98);
-    }
-
-    textarea {
-      min-height: 90px;
-      resize: vertical;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .form-note {
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    .anydesk-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: var(--radius-pill);
-      background: var(--accent-soft);
-      border: 1px dashed rgba(76, 201, 240, 0.4);
-      font-size: 12px;
-      color: var(--text-main);
-      margin-bottom: 10px;
-    }
-
-    .anydesk-pill span {
-      font-weight: 600;
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-size: 11px;
-    }
-
-    .pill-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: var(--accent-2);
-      box-shadow: 0 0 8px rgba(247, 37, 133, 0.9);
-    }
-
-    .contact-details {
-      font-size: 14px;
-      color: var(--text-main);
-      margin: 10px 0 6px;
-    }
-
-    .service-areas {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin: 0;
-    }
-
-    /* Footer */
-
-    footer {
-      margin-top: 32px;
-      padding-bottom: 28px;
-    }
-
-    .footer-inner {
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      padding-top: 14px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .footer-contact {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .footer-contact a {
-      color: var(--text-muted);
-    }
-
-    .footer-social {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    /* Responsive */
-
-    @media (max-width: 800px) {
-      .hero-wrap {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .contact-grid {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-
-    @media (max-width: 640px) {
-      header {
-        padding-top: 12px;
-      }
-
-      .top-bar {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .hero-card,
-      .info-card,
-      .contact-card {
-        padding: 18px 16px 16px;
-      }
-
-      h1 {
-        font-size: 24px;
-      }
-    }
-  </style>
+<meta charset="utf-8">
+<title>ARC Lookup</title>
+<style>
+  body {
+    background:#000;
+    color:#fff;
+    font-family:Segoe UI, sans-serif;
+    padding:20px;
+  }
+
+  /* Top button row */
+  .top-buttons {
+    display:flex;
+    gap:10px;
+    margin-bottom:15px;
+  }
+  .top-buttons a {
+    background:#222;
+    color:#fff;
+    border:1px solid #444;
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:14px;
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .top-buttons a:hover {
+    background:#333;
+  }
+
+  input {
+    font-size:22px;
+    padding:12px;
+    width:95%;
+    margin-bottom:15px;
+  }
+  .item-name {
+    font-size:26px;
+    font-weight:bold;
+  }
+  .line {
+    margin:4px 0;
+    font-size:18px;
+  }
+  .section-header {
+    margin:10px 0 4px 0;
+    font-size:20px;
+    font-weight:bold;
+    color:#ffa500;
+  }
+  hr {
+    border:1px solid #333;
+    margin:10px 0;
+  }
+</style>
 </head>
 <body>
-<div class="page">
 
-  <!-- Top bar -->
-  <header>
-    <div class="inner">
-      <div class="top-bar">
-        <div class="brand">
-          <div class="brand-logo">SS</div>
-          <div class="brand-text">
-            <div class="brand-name">Simple Solutions IT LLC</div>
-            <div class="brand-tagline">Personal tech help at home &amp; office</div>
-          </div>
-        </div>
-
-        <div class="top-actions">
-          <div class="chip">
-            <span class="chip-dot"></span>
-            <span>Serving the Golden Isles area</span>
-          </div>
-          <a class="btn-secondary" href="https://www.facebook.com" target="_blank" rel="noopener">
-            Facebook
-          </a>
-          <a class="btn" href="#contact">
-            Book help
-          </a>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main content -->
-  <main>
-    <div class="inner">
-
-      <!-- Hero -->
-      <section class="hero-wrap" aria-labelledby="hero-heading">
-        <article class="hero-card">
-          <div class="hero-content">
-            <div class="eyebrow">Welcome</div>
-            <h1 id="hero-heading">Friendly, patient tech support in your own space.</h1>
-            <p class="owner-name">Ryan Marks &mdash; Simple Solutions IT LLC</p>
-            <p class="hero-text">
-              If you worked with me back when I was helping people at the local Apple store, you know I like
-              solving real-world tech headaches where they actually happen: <span>in your home and office</span>.
-              From phones and computers to networks and printers, I come to you.
-            </p>
-
-            <div class="hero-cta">
-              <a class="btn" href="tel:19125806229">Call or text: (912) 580-6229</a>
-              <a class="btn-secondary" href="mailto:[email protected]">Email Ryan</a>
-            </div>
-
-            <p class="hero-meta">
-              <strong>Need help now?</strong> Call, text, or send a message below and I’ll get back to you as soon as I can.
-            </p>
-          </div>
-        </article>
-
-        <!-- Side info / mini contact -->
-        <aside class="info-card" aria-label="Contact details">
-          <div class="info-card-header">
-            <div class="avatar">
-              <!-- If you add a headshot, replace this with <img src="img/ryan.jpg" alt="Ryan Marks" /> -->
-              RM
-            </div>
-            <div>
-              <div class="info-title">Reach Ryan directly</div>
-              <div class="info-subtitle">On-site &amp; remote support</div>
-            </div>
-          </div>
-
-          <ul class="info-list">
-            <li>
-              <span class="info-label">Call or Text</span>
-              <span class="info-value"><a href="tel:19125806229">(912) 580-6229</a></span>
-            </li>
-            <li>
-              <span class="info-label">Email</span>
-              <span class="info-value"><a href="mailto:[email protected]">[email protected]</a></span>
-            </li>
-            <li>
-              <span class="info-label">Remote Access</span>
-              <span class="info-value"><a href="https://anydesk.com" target="_blank" rel="noopener">AnyDesk quick link</a></span>
-            </li>
-            <li>
-              <span class="info-label">Service Areas</span>
-              <span class="info-value">
-                St. Simons, Sea Island, Brunswick<br/>
-                &amp; nearby Georgia communities
-              </span>
-            </li>
-          </ul>
-
-          <div class="info-actions">
-            <a class="btn-secondary" href="#contact">Send a message</a>
-            <a class="social-link" href="https://www.facebook.com" target="_blank" rel="noopener">
-              <span>Find me on Facebook</span>
-            </a>
-          </div>
-        </aside>
-      </section>
-
-      <!-- Services -->
-      <section class="section" id="services" aria-labelledby="services-heading">
-        <div class="section-header">
-          <div>
-            <h2 class="section-title" id="services-heading">A few of my services</h2>
-            <p class="section-subtitle">
-              If your issue isn’t listed here, just ask &mdash; chances are I can help or point you in the right direction.
-            </p>
-          </div>
-        </div>
-
-        <div class="services-grid">
-          <article class="service-card">
-            <div class="service-label">Support</div>
-            <h3 class="service-title">Everyday Tech Help</h3>
-            <p class="service-text">
-              Fix frustrating problems on your phone, tablet, or computer and learn what to do next time so you feel more confident.
-            </p>
-            <p class="service-note">Great for “my device is acting weird” visits.</p>
-          </article>
-
-          <article class="service-card">
-            <div class="service-label">Security</div>
-            <h3 class="service-title">Virus &amp; Scam Cleanup</h3>
-            <p class="service-text">
-              Remove malware, pop-ups, suspicious toolbars, and help review possible scams so your devices stay safer.
-            </p>
-            <p class="service-note">Includes basic safety tips tailored to you.</p>
-          </article>
-
-          <article class="service-card">
-            <div class="service-label">Accounts</div>
-            <h3 class="service-title">Email &amp; Account Issues</h3>
-            <p class="service-text">
-              Reset passwords, sync email on all your devices, and work through confusing messages from service providers.
-            </p>
-            <p class="service-note">Apple, Microsoft, Google, and more.</p>
-          </article>
-
-          <article class="service-card">
-            <div class="service-label">Printing</div>
-            <h3 class="service-title">Printer Setup &amp; Training</h3>
-            <p class="service-text">
-              Help choosing a printer, setting it up on Wi-Fi, and learning how to print from phones, tablets, and computers.
-            </p>
-            <p class="service-note">Perfect when the printer “never works when you need it.”</p>
-          </article>
-
-          <article class="service-card">
-            <div class="service-label">Computers</div>
-            <h3 class="service-title">Repair &amp; Upgrades</h3>
-            <p class="service-text">
-              Troubleshoot slow or broken computers, add memory or storage, and advise when it’s time to repair vs. replace.
-            </p>
-            <p class="service-note">Mac and Windows welcome.</p>
-          </article>
-
-          <article class="service-card">
-            <div class="service-label">Systems</div>
-            <h3 class="service-title">Operating System Help</h3>
-            <p class="service-text">
-              Update or reinstall your operating system, clean up software problems, and improve security with current updates.
-            </p>
-            <p class="service-note">Can be done on-site or remotely when appropriate.</p>
-          </article>
-        </div>
-      </section>
-
-      <!-- Contact & AnyDesk -->
-      <section class="section" id="contact" aria-labelledby="contact-heading">
-        <div class="contact-grid">
-
-          <!-- Message form -->
-          <article class="contact-card">
-            <div class="contact-card-header">
-              <h2 id="contact-heading">Get in touch</h2>
-              <p>Send a quick message and I’ll follow up as soon as I can.</p>
-            </div>
-
-            <!-- NOTE:
-                 For a static GitHub Pages site, you’ll need a form service (Formspree, Getform, etc.)
-                 or you can temporarily change this to a simple mailto: link.
-                 For now the form is just visual (no backend).
-            -->
-            <form>
-              <div class="form-row">
-                <div>
-                  <label for="first-name">First name</label>
-                  <input id="first-name" name="first-name" type="text" autocomplete="given-name" />
-                </div>
-                <div>
-                  <label for="last-name">Last name</label>
-                  <input id="last-name" name="last-name" type="text" autocomplete="family-name" />
-                </div>
-              </div>
-
-              <div>
-                <label for="email">Email</label>
-                <input id="email" name="email" type="email" autocomplete="email" />
-              </div>
-
-              <div>
-                <label for="message">How can I help?</label>
-                <textarea id="message" name="message"></textarea>
-              </div>
-
-              <button class="btn" type="submit">Send message</button>
-              <p class="form-note">You can also call or text if that’s easier.</p>
-            </form>
-          </article>
-
-          <!-- AnyDesk + quick contact -->
-          <aside class="contact-card" aria-label="Remote support and call details">
-            <div class="anydesk-pill">
-              <span>Remote Help</span>
-              <span class="pill-dot"></span>
-              <span>AnyDesk quick connect</span>
-            </div>
-
-            <p class="contact-details">
-              If we’re doing a remote session, we’ll use AnyDesk so I can securely see your screen and help you from afar.
-            </p>
-
-            <p class="contact-details">
-              <strong>Call or Text:</strong>
-              <br />
-              <a href="tel:19125806229">(912) 580-6229</a>
-            </p>
-
-            <p class="contact-details">
-              <strong>Email:</strong>
-              <br />
-              <a href="mailto:[email protected]">[email protected]</a>
-            </p>
-
-            <p class="service-areas">
-              I regularly work on St. Simons Island, Sea Island, Brunswick,
-              and most nearby Georgia areas. Remote access is available when it makes sense.
-            </p>
-
-            <form style="margin-top: 14px;">
-              <div class="contact-card-header" style="margin-bottom: 6px;">
-                <h2 style="font-size: 16px; margin: 0 0 4px;">Let me reach out to you</h2>
-                <p style="font-size: 12px; margin: 0;">
-                  Leave your info and I’ll call, text, or email you back.
-                </p>
-              </div>
-
-              <div class="form-row">
-                <div>
-                  <label for="callback-first-name">First name</label>
-                  <input id="callback-first-name" name="callback-first-name" type="text" />
-                </div>
-                <div>
-                  <label for="callback-last-name">Last name</label>
-                  <input id="callback-last-name" name="callback-last-name" type="text" />
-                </div>
-              </div>
-
-              <div>
-                <label for="callback-email">Email</label>
-                <input id="callback-email" name="callback-email" type="email" />
-              </div>
-
-              <div>
-                <label for="callback-phone">Phone (optional)</label>
-                <input id="callback-phone" name="callback-phone" type="tel" />
-              </div>
-
-              <div>
-                <label for="callback-message">Short note</label>
-                <textarea id="callback-message" name="callback-message"></textarea>
-              </div>
-
-              <button class="btn-secondary" type="submit">Submit</button>
-              <p class="form-note">“Talk to you soon!”</p>
-            </form>
-          </aside>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <!-- Footer -->
-  <footer>
-    <div class="inner">
-      <div class="footer-inner">
-        <div class="footer-contact">
-          <span>&copy; <span id="year"></span> Simple Solutions IT LLC</span>
-          <span>&bull;</span>
-          <a href="tel:19125806229">(912) 580-6229</a>
-          <span>&bull;</span>
-          <a href="mailto:[email protected]">[email protected]</a>
-        </div>
-        <div class="footer-social">
-          <a href="https://anydesk.com" target="_blank" rel="noopener">AnyDesk Quick Link</a>
-          <span>&bull;</span>
-          <a href="https://www.facebook.com" target="_blank" rel="noopener">Facebook</a>
-        </div>
-      </div>
-    </div>
-  </footer>
-
+<!-- Top Buttons -->
+<div class="top-buttons">
+  <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
+  <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=732163012#gid=732163012"
+     target="_blank">Spreadsheet</a>
 </div>
 
+<input id="search" placeholder="Type item name..." autofocus>
+<div id="result"></div>
+
 <script>
-  // Set current year in footer
-  document.getElementById('year').textContent = new Date().getFullYear();
+const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
+
+const data = [];
+
+/* ===== ALWAYS CLEAR SEARCH BAR WHEN CLICKED ===== */
+document.getElementById("search").addEventListener("focus", function () {
+  this.value = "";
+});
+
+/* ===== Load CSV ===== */
+fetch(sheetURL)
+  .then(r => r.text())
+  .then(text => {
+    const rows = text.replace(/\r/g,"").split("\n");
+    rows.shift();
+
+    for (let r of rows) {
+      if (!r.trim()) continue;
+      const f = csvSplit(r);
+      data.push({
+        name:      f[0] || "",
+        rarity:    f[1] || "",
+        recycle1:  f[2] || "",
+        recycle2:  f[3] || "",
+        sellPrice: f[4] || "",
+        category:  f[5] || "",
+        keep1:     f[6] || "",
+        keep2:     f[7] || "",
+        keep3:     f[8] || "",
+        notes:     f[9] || ""
+      });
+    }
+});
+
+function csvSplit(row) {
+  let out = [], field = "", q = false;
+  for (const ch of row) {
+    if (ch === '"') { q = !q; continue; }
+    if (ch === ',' && !q) { out.push(field); field = ""; continue; }
+    field += ch;
+  }
+  out.push(field);
+  return out;
+}
+
+function extractItemNameFromRecycle(str) {
+  return str.replace(/^\s*\d+\s*x\s*/i, "").trim();
+}
+
+/* ===== FAST SEARCH ===== */
+let timer = null;
+document.getElementById("search").addEventListener("input", function () {
+  clearTimeout(timer);
+  const q = this.value.trim();
+  timer = setTimeout(() => runSearch(q), 100);
+});
+
+function runSearch(query) {
+  const q = query.toLowerCase();
+  const out = document.getElementById("result");
+  out.innerHTML = "";
+  if (!q) return;
+
+  const matches = data.filter(d => d.name.toLowerCase().includes(q));
+  if (!matches.length) {
+    out.innerHTML = "<div>No match</div>";
+    return;
+  }
+
+  let html = "";
+
+  /* ===== ITEM CARDS ===== */
+  matches.forEach(item => {
+    const rarity = (item.rarity || "").toLowerCase();
+    let nameColor = "white";
+
+    if (rarity.includes("uncommon")) nameColor = "#00ff00";
+    else if (rarity.includes("rare")) nameColor = "#1e90ff";
+    else if (rarity.includes("epic")) nameColor = "#ff00ff";
+    else if (rarity.includes("legendary")) nameColor = "#ffd700";
+
+    const priceNum = parseInt((item.sellPrice || "").replace(/[^0-9]/g,"")) || 0;
+    let priceColor = "white";
+
+    if (priceNum >= 1000 && priceNum <= 2000) priceColor = "#00ff00";
+    else if (priceNum >= 2001 && priceNum <= 5000) priceColor = "#ff69b4";
+    else if (priceNum >= 5001) priceColor = "#ffd700";
+
+    const recycleParts = [];
+    if (item.recycle1) recycleParts.push(item.recycle1);
+    if (item.recycle2) recycleParts.push(item.recycle2);
+
+    const questParts = [];
+    if (item.keep1) questParts.push(item.keep1);
+    if (item.keep2) questParts.push(item.keep2);
+    if (item.keep3) questParts.push(item.keep3);
+
+    html += `
+      <div class="item-name" style="color:${nameColor}">${item.name}</div>
+      ${item.rarity ? `<div class="line">Rarity: ${item.rarity}</div>` : ""}
+      ${item.category ? `<div class="line">Category: ${item.category}</div>` : ""}
+      ${item.sellPrice ? `<div class="line" style="color:${priceColor}; font-weight:bold;">Sell Price: ${item.sellPrice}</div>` : ""}
+      ${recycleParts.length ? `<div class="line">Recycles To: ${recycleParts.join(", ")}</div>` : ""}
+      ${questParts.length ? `<div class="line">Quest: ${questParts.join(", ")}</div>` : ""}
+      ${item.notes ? `<div class="line">Notes: ${item.notes}</div>` : ""}
+      <hr>
+    `;
+  });
+
+  /* ===== REVERSE RECYCLE LOOKUP ===== */
+  const exact = data.find(d => d.name.toLowerCase() === q);
+  const targetName = exact ? exact.name : matches[0].name;
+  const targetNameLower = targetName.toLowerCase();
+
+  const recyclers = data.filter(d => {
+    if (!d.recycle1 && !d.recycle2) return false;
+
+    const r1 = extractItemNameFromRecycle(d.recycle1 || "").toLowerCase();
+    const r2 = extractItemNameFromRecycle(d.recycle2 || "").toLowerCase();
+
+    return (r1 === targetNameLower || r2 === targetNameLower) &&
+           d.name.toLowerCase() !== targetNameLower;
+  });
+
+  if (recyclers.length) {
+    html += `<div class="section-header">Items that recycle into ${targetName}:</div>`;
+    recyclers.forEach(src => {
+      html += `<div class="line">• ${src.name}</div>`;
+    });
+  }
+
+  out.innerHTML = html;
+}
 </script>
 </body>
 </html>
