@@ -16,8 +16,9 @@
     display:flex;
     gap:10px;
     margin-bottom:15px;
+    flex-wrap:wrap;
   }
-  .top-buttons a {
+  .top-buttons a, .mode-btn {
     background:#222;
     color:#fff;
     border:1px solid #444;
@@ -27,16 +28,23 @@
     text-decoration:none;
     cursor:pointer;
   }
-  .top-buttons a:hover {
+  .top-buttons a:hover, .mode-btn:hover {
     background:#333;
+  }
+
+  /* Mode toggle buttons */
+  .mode-btn.active {
+    background:#555;
+    border-color:#888;
   }
 
   input {
     font-size:22px;
     padding:12px;
     width:95%;
-    margin-bottom:15px;
+    margin:10px 0 15px 0;
   }
+
   .item-name {
     font-size:26px;
     font-weight:bold;
@@ -59,27 +67,41 @@
 </head>
 <body>
 
-<!-- Top Buttons -->
+<!-- External Links -->
 <div class="top-buttons">
   <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
   <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=732163012#gid=732163012"
      target="_blank">Spreadsheet</a>
 </div>
 
-<input id="search" placeholder="Type item name..." autofocus>
+<!-- Mode buttons -->
+<div class="top-buttons">
+  <button id="modeNormal" class="mode-btn active">Normal Search</button>
+  <button id="modeReverse" class="mode-btn">Reverse Search</button>
+</div>
+
+<!-- Search boxes -->
+<input id="searchNormal" placeholder="Type item name..." autofocus>
+<input id="searchReverse" placeholder="Type a target item (show recyclers)..." style="display:none;">
+
 <div id="result"></div>
 
 <script>
-const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
+const sheetURL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
 
 const data = [];
 
-/* ===== ALWAYS CLEAR SEARCH BAR WHEN CLICKED ===== */
-document.getElementById("search").addEventListener("focus", function () {
-  this.value = "";
-});
+/* Always clear search box when clicked */
+function enableAutoClear(input) {
+  input.addEventListener("focus", function() {
+    this.value = "";
+  });
+}
+enableAutoClear(document.getElementById("searchNormal"));
+enableAutoClear(document.getElementById("searchReverse"));
 
-/* ===== Load CSV ===== */
+/* Load CSV */
 fetch(sheetURL)
   .then(r => r.text())
   .then(text => {
@@ -119,15 +141,42 @@ function extractItemNameFromRecycle(str) {
   return str.replace(/^\s*\d+\s*x\s*/i, "").trim();
 }
 
-/* ===== FAST SEARCH ===== */
-let timer = null;
-document.getElementById("search").addEventListener("input", function () {
-  clearTimeout(timer);
+/* ======================
+   MODE TOGGLE
+====================== */
+const normalBtn = document.getElementById("modeNormal");
+const reverseBtn = document.getElementById("modeReverse");
+
+const searchNormal = document.getElementById("searchNormal");
+const searchReverse = document.getElementById("searchReverse");
+
+normalBtn.onclick = () => {
+  normalBtn.classList.add("active");
+  reverseBtn.classList.remove("active");
+  searchReverse.style.display = "none";
+  searchNormal.style.display = "block";
+  searchNormal.focus();
+};
+
+reverseBtn.onclick = () => {
+  reverseBtn.classList.add("active");
+  normalBtn.classList.remove("active");
+  searchNormal.style.display = "none";
+  searchReverse.style.display = "block";
+  searchReverse.focus();
+};
+
+/* ======================
+   NORMAL SEARCH
+====================== */
+let timer1 = null;
+searchNormal.addEventListener("input", function () {
+  clearTimeout(timer1);
   const q = this.value.trim();
-  timer = setTimeout(() => runSearch(q), 100);
+  timer1 = setTimeout(() => runNormalSearch(q), 100);
 });
 
-function runSearch(query) {
+function runNormalSearch(query) {
   const q = query.toLowerCase();
   const out = document.getElementById("result");
   out.innerHTML = "";
@@ -141,22 +190,13 @@ function runSearch(query) {
 
   let html = "";
 
-  /* ===== ITEM CARDS ===== */
+  /* Draw main item results */
   matches.forEach(item => {
     const rarity = (item.rarity || "").toLowerCase();
-    let nameColor = "white";
-
-    if (rarity.includes("uncommon")) nameColor = "#00ff00";
-    else if (rarity.includes("rare")) nameColor = "#1e90ff";
-    else if (rarity.includes("epic")) nameColor = "#ff00ff";
-    else if (rarity.includes("legendary")) nameColor = "#ffd700";
+    let nameColor = rarityColor(rarity);
 
     const priceNum = parseInt((item.sellPrice || "").replace(/[^0-9]/g,"")) || 0;
-    let priceColor = "white";
-
-    if (priceNum >= 1000 && priceNum <= 2000) priceColor = "#00ff00";
-    else if (priceNum >= 2001 && priceNum <= 5000) priceColor = "#ff69b4";
-    else if (priceNum >= 5001) priceColor = "#ffd700";
+    let priceColor = priceColorPick(priceNum);
 
     const recycleParts = [];
     if (item.recycle1) recycleParts.push(item.recycle1);
@@ -179,30 +219,75 @@ function runSearch(query) {
     `;
   });
 
-  /* ===== REVERSE RECYCLE LOOKUP ===== */
-  const exact = data.find(d => d.name.toLowerCase() === q);
-  const targetName = exact ? exact.name : matches[0].name;
-  const targetNameLower = targetName.toLowerCase();
+  out.innerHTML = html;
+}
+
+/* ======================
+   REVERSE SEARCH MODE
+====================== */
+let timer2 = null;
+searchReverse.addEventListener("input", function () {
+  clearTimeout(timer2);
+  const q = this.value.trim();
+  timer2 = setTimeout(() => runReverseSearch(q), 100);
+});
+
+function runReverseSearch(query) {
+  const q = query.toLowerCase();
+  const out = document.getElementById("result");
+  out.innerHTML = "";
+  if (!q) return;
 
   const recyclers = data.filter(d => {
-    if (!d.recycle1 && !d.recycle2) return false;
-
     const r1 = extractItemNameFromRecycle(d.recycle1 || "").toLowerCase();
     const r2 = extractItemNameFromRecycle(d.recycle2 || "").toLowerCase();
-
-    return (r1 === targetNameLower || r2 === targetNameLower) &&
-           d.name.toLowerCase() !== targetNameLower;
+    return (r1 === q || r2 === q);
   });
 
-  if (recyclers.length) {
-    html += `<div class="section-header">Items that recycle into ${targetName}:</div>`;
-    recyclers.forEach(src => {
-      html += `<div class="line">• ${src.name}</div>`;
-    });
+  if (!recyclers.length) {
+    out.innerHTML = "<div>No items recycle into this</div>";
+    return;
   }
+
+  let html = `<div class="section-header">Items that recycle into: ${query}</div>`;
+
+  recyclers.forEach(item => {
+    const rarity = item.rarity.toLowerCase();
+    const nameColor = rarityColor(rarity);
+
+    const priceNum = parseInt((item.sellPrice || "").replace(/[^0-9]/g,"")) || 0;
+    const priceColor = priceColorPick(priceNum);
+
+    html += `
+      <div class="line">
+        <span style="color:${nameColor}; font-weight:bold;">${item.name}</span>
+        —
+        <span style="color:${priceColor}; font-weight:bold;">${item.sellPrice || "0"}</span>
+      </div>
+    `;
+  });
 
   out.innerHTML = html;
 }
+
+/* ======================
+   COLOR HELPERS
+====================== */
+function rarityColor(r) {
+  if (r.includes("uncommon")) return "#00ff00";
+  if (r.includes("rare")) return "#1e90ff";
+  if (r.includes("epic")) return "#ff00ff";
+  if (r.includes("legendary")) return "#ffd700";
+  return "white";
+}
+
+function priceColorPick(n) {
+  if (n >= 1000 && n <= 2000) return "#00ff00";
+  if (n >= 2001 && n <= 5000) return "#ff69b4";
+  if (n >= 5001) return "#ffd700";
+  return "white";
+}
 </script>
+
 </body>
 </html>
