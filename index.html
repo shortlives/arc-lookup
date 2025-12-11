@@ -10,6 +10,27 @@
     font-family:Segoe UI, sans-serif;
     padding:20px;
   }
+
+  /* Top button row */
+  .top-buttons {
+    display:flex;
+    gap:10px;
+    margin-bottom:15px;
+  }
+  .top-buttons a {
+    background:#222;
+    color:#fff;
+    border:1px solid #444;
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:14px;
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .top-buttons a:hover {
+    background:#333;
+  }
+
   input, button {
     font-size:22px;
     padding:12px;
@@ -38,6 +59,13 @@
 </head>
 <body>
 
+<!-- Top Buttons -->
+<div class="top-buttons">
+  <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
+  <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=732163012#gid=732163012"
+     target="_blank">Spreadsheet</a>
+</div>
+
 <input id="search" placeholder="Type item name..." autofocus>
 <div id="result"></div>
 
@@ -46,11 +74,21 @@ const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iUR
 
 const data = [];
 
+/* ===== Clear search bar when clicked ONCE ===== */
+let clearedOnce = false;
+document.getElementById("search").addEventListener("focus", function () {
+  if (!clearedOnce) {
+    this.value = "";
+    clearedOnce = true;
+  }
+});
+
+/* ===== Load CSV ===== */
 fetch(sheetURL)
   .then(r => r.text())
   .then(text => {
     const rows = text.replace(/\r/g,"").split("\n");
-    rows.shift(); // remove header row
+    rows.shift();
 
     for (let r of rows) {
       if (!r.trim()) continue;
@@ -81,7 +119,6 @@ function csvSplit(row) {
   return out;
 }
 
-// Strip "2x " patterns to match names
 function extractItemNameFromRecycle(str) {
   return str.replace(/^\s*\d+\s*x\s*/i, "").trim();
 }
@@ -108,7 +145,7 @@ function runSearch(query) {
 
   let html = "";
 
-  // ========== MAIN ITEM CARDS ==========
+  /* ===== ITEM CARDS ===== */
   matches.forEach(item => {
     const rarity = (item.rarity || "").toLowerCase();
     let nameColor = "white";
@@ -129,7 +166,6 @@ function runSearch(query) {
     if (item.recycle1) recycleParts.push(item.recycle1);
     if (item.recycle2) recycleParts.push(item.recycle2);
 
-    // Combine Quest fields into one line
     const questParts = [];
     if (item.keep1) questParts.push(item.keep1);
     if (item.keep2) questParts.push(item.keep2);
@@ -147,7 +183,7 @@ function runSearch(query) {
     `;
   });
 
-  // ========== REVERSE RECYCLE LOOKUP ==========
+  /* ===== REVERSE RECYCLE LOOKUP ===== */
   const exact = data.find(d => d.name.toLowerCase() === q);
   const targetName = exact ? exact.name : matches[0].name;
   const targetNameLower = targetName.toLowerCase();
@@ -158,18 +194,14 @@ function runSearch(query) {
     const r1 = extractItemNameFromRecycle(d.recycle1 || "").toLowerCase();
     const r2 = extractItemNameFromRecycle(d.recycle2 || "").toLowerCase();
 
-    const givesTarget = (r1 === targetNameLower || r2 === targetNameLower);
-    const isSameItem = d.name.toLowerCase() === targetNameLower;
-
-    return givesTarget && !isSameItem;
+    return (r1 === targetNameLower || r2 === targetNameLower) &&
+           d.name.toLowerCase() !== targetNameLower;
   });
 
   if (recyclers.length) {
     html += `<div class="section-header">Items that recycle into ${targetName}:</div>`;
     recyclers.forEach(src => {
-      html += `
-        <div class="line">• ${src.name}</div>
-      `;
+      html += `<div class="line">• ${src.name}</div>`;
     });
   }
 
