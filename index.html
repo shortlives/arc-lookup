@@ -11,14 +11,13 @@
     padding:20px;
   }
 
-  /* Top button row */
   .top-buttons {
     display:flex;
     gap:10px;
     margin-bottom:15px;
     flex-wrap:wrap;
   }
-  .top-buttons a, .mode-btn {
+  .top-buttons a {
     background:#222;
     color:#fff;
     border:1px solid #444;
@@ -28,37 +27,28 @@
     text-decoration:none;
     cursor:pointer;
   }
-  .top-buttons a:hover, .mode-btn:hover {
+  .top-buttons a:hover {
     background:#333;
-  }
-
-  /* Mode toggle buttons */
-  .mode-btn.active {
-    background:#555;
-    border-color:#888;
   }
 
   input {
     font-size:22px;
     padding:12px;
     width:95%;
-    margin:10px 0 15px 0;
+    margin-bottom:15px;
   }
 
-  .item-name {
+  .item-title {
     font-size:26px;
     font-weight:bold;
+    margin-bottom:4px;
   }
+
   .line {
     margin:4px 0;
     font-size:18px;
   }
-  .section-header {
-    margin:10px 0 4px 0;
-    font-size:20px;
-    font-weight:bold;
-    color:#ffa500;
-  }
+
   hr {
     border:1px solid #333;
     margin:10px 0;
@@ -67,23 +57,13 @@
 </head>
 <body>
 
-<!-- External Links -->
 <div class="top-buttons">
   <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
   <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=732163012#gid=732163012"
      target="_blank">Spreadsheet</a>
 </div>
 
-<!-- Mode buttons -->
-<div class="top-buttons">
-  <button id="modeNormal" class="mode-btn active">Normal Search</button>
-  <button id="modeReverse" class="mode-btn">Reverse Search</button>
-</div>
-
-<!-- Search boxes -->
-<input id="searchNormal" placeholder="Type item name..." autofocus>
-<input id="searchReverse" placeholder="Type a target item (show recyclers)..." style="display:none;">
-
+<input id="search" placeholder="Type item name..." autofocus>
 <div id="result"></div>
 
 <script>
@@ -92,14 +72,10 @@ const sheetURL =
 
 const data = [];
 
-/* Always clear search box when clicked */
-function enableAutoClear(input) {
-  input.addEventListener("focus", function() {
-    this.value = "";
-  });
-}
-enableAutoClear(document.getElementById("searchNormal"));
-enableAutoClear(document.getElementById("searchReverse"));
+/* Always clear search when clicked */
+document.getElementById("search").addEventListener("focus", function () {
+  this.value = "";
+});
 
 /* Load CSV */
 fetch(sheetURL)
@@ -107,7 +83,6 @@ fetch(sheetURL)
   .then(text => {
     const rows = text.replace(/\r/g,"").split("\n");
     rows.shift();
-
     for (let r of rows) {
       if (!r.trim()) continue;
       const f = csvSplit(r);
@@ -141,139 +116,8 @@ function extractItemNameFromRecycle(str) {
   return str.replace(/^\s*\d+\s*x\s*/i, "").trim();
 }
 
-/* ======================
-   MODE TOGGLE
-====================== */
-const normalBtn = document.getElementById("modeNormal");
-const reverseBtn = document.getElementById("modeReverse");
-
-const searchNormal = document.getElementById("searchNormal");
-const searchReverse = document.getElementById("searchReverse");
-
-normalBtn.onclick = () => {
-  normalBtn.classList.add("active");
-  reverseBtn.classList.remove("active");
-  searchReverse.style.display = "none";
-  searchNormal.style.display = "block";
-  searchNormal.focus();
-};
-
-reverseBtn.onclick = () => {
-  reverseBtn.classList.add("active");
-  normalBtn.classList.remove("active");
-  searchNormal.style.display = "none";
-  searchReverse.style.display = "block";
-  searchReverse.focus();
-};
-
-/* ======================
-   NORMAL SEARCH
-====================== */
-let timer1 = null;
-searchNormal.addEventListener("input", function () {
-  clearTimeout(timer1);
-  const q = this.value.trim();
-  timer1 = setTimeout(() => runNormalSearch(q), 100);
-});
-
-function runNormalSearch(query) {
-  const q = query.toLowerCase();
-  const out = document.getElementById("result");
-  out.innerHTML = "";
-  if (!q) return;
-
-  const matches = data.filter(d => d.name.toLowerCase().includes(q));
-  if (!matches.length) {
-    out.innerHTML = "<div>No match</div>";
-    return;
-  }
-
-  let html = "";
-
-  /* Draw main item results */
-  matches.forEach(item => {
-    const rarity = (item.rarity || "").toLowerCase();
-    let nameColor = rarityColor(rarity);
-
-    const priceNum = parseInt((item.sellPrice || "").replace(/[^0-9]/g,"")) || 0;
-    let priceColor = priceColorPick(priceNum);
-
-    const recycleParts = [];
-    if (item.recycle1) recycleParts.push(item.recycle1);
-    if (item.recycle2) recycleParts.push(item.recycle2);
-
-    const questParts = [];
-    if (item.keep1) questParts.push(item.keep1);
-    if (item.keep2) questParts.push(item.keep2);
-    if (item.keep3) questParts.push(item.keep3);
-
-    html += `
-      <div class="item-name" style="color:${nameColor}">${item.name}</div>
-      ${item.rarity ? `<div class="line">Rarity: ${item.rarity}</div>` : ""}
-      ${item.category ? `<div class="line">Category: ${item.category}</div>` : ""}
-      ${item.sellPrice ? `<div class="line" style="color:${priceColor}; font-weight:bold;">Sell Price: ${item.sellPrice}</div>` : ""}
-      ${recycleParts.length ? `<div class="line">Recycles To: ${recycleParts.join(", ")}</div>` : ""}
-      ${questParts.length ? `<div class="line">Quest: ${questParts.join(", ")}</div>` : ""}
-      ${item.notes ? `<div class="line">Notes: ${item.notes}</div>` : ""}
-      <hr>
-    `;
-  });
-
-  out.innerHTML = html;
-}
-
-/* ======================
-   REVERSE SEARCH MODE
-====================== */
-let timer2 = null;
-searchReverse.addEventListener("input", function () {
-  clearTimeout(timer2);
-  const q = this.value.trim();
-  timer2 = setTimeout(() => runReverseSearch(q), 100);
-});
-
-function runReverseSearch(query) {
-  const q = query.toLowerCase();
-  const out = document.getElementById("result");
-  out.innerHTML = "";
-  if (!q) return;
-
-  const recyclers = data.filter(d => {
-    const r1 = extractItemNameFromRecycle(d.recycle1 || "").toLowerCase();
-    const r2 = extractItemNameFromRecycle(d.recycle2 || "").toLowerCase();
-    return (r1 === q || r2 === q);
-  });
-
-  if (!recyclers.length) {
-    out.innerHTML = "<div>No items recycle into this</div>";
-    return;
-  }
-
-  let html = `<div class="section-header">Items that recycle into: ${query}</div>`;
-
-  recyclers.forEach(item => {
-    const rarity = item.rarity.toLowerCase();
-    const nameColor = rarityColor(rarity);
-
-    const priceNum = parseInt((item.sellPrice || "").replace(/[^0-9]/g,"")) || 0;
-    const priceColor = priceColorPick(priceNum);
-
-    html += `
-      <div class="line">
-        <span style="color:${nameColor}; font-weight:bold;">${item.name}</span>
-        —
-        <span style="color:${priceColor}; font-weight:bold;">${item.sellPrice || "0"}</span>
-      </div>
-    `;
-  });
-
-  out.innerHTML = html;
-}
-
-/* ======================
-   COLOR HELPERS
-====================== */
 function rarityColor(r) {
+  r = r.toLowerCase();
   if (r.includes("uncommon")) return "#00ff00";
   if (r.includes("rare")) return "#1e90ff";
   if (r.includes("epic")) return "#ff00ff";
@@ -287,7 +131,84 @@ function priceColorPick(n) {
   if (n >= 5001) return "#ffd700";
   return "white";
 }
-</script>
 
+/* ======================
+   MAIN SEARCH
+====================== */
+let timer = null;
+document.getElementById("search").addEventListener("input", function () {
+  clearTimeout(timer);
+  timer = setTimeout(() => runSearch(this.value.trim()), 100);
+});
+
+function runSearch(query) {
+  const out = document.getElementById("result");
+  out.innerHTML = "";
+  if (!query) return;
+
+  const q = query.toLowerCase();
+  const matches = data.filter(d => d.name.toLowerCase().includes(q));
+
+  if (!matches.length) {
+    out.innerHTML = "<div>No match</div>";
+    return;
+  }
+
+  let html = "";
+
+  matches.forEach(item => {
+    const nameColor = rarityColor(item.rarity);
+    const priceNum = parseInt(item.sellPrice.replace(/[^0-9]/g,"")) || 0;
+    const priceColor = priceColorPick(priceNum);
+
+    const recycleParts = [];
+    if (item.recycle1) recycleParts.push(item.recycle1);
+    if (item.recycle2) recycleParts.push(item.recycle2);
+
+    /* Reverse Recycle Lookup (each on its own line) */
+    const recyclers = data.filter(d => {
+      const r1 = extractItemNameFromRecycle(d.recycle1 || "").toLowerCase();
+      const r2 = extractItemNameFromRecycle(d.recycle2 || "").toLowerCase();
+      return (r1 === item.name.toLowerCase() || r2 === item.name.toLowerCase());
+    });
+
+    html += `
+      <div class="item-title" style="color:${nameColor}">
+        ${item.name}
+        <span style="color:${priceColor}; font-size:20px;">— ${item.sellPrice}</span>
+      </div>
+    `;
+
+    if (recycleParts.length) {
+      html += `<div class="line">Recycles To: ${recycleParts.join(", ")}</div>`;
+    }
+
+    if (recyclers.length) {
+      html += `<div class="line" style="color:#ffa500;">Recycled From:</div>`;
+      recyclers.forEach(src => {
+        const rColor = rarityColor(src.rarity);
+        const pNum = parseInt(src.sellPrice.replace(/[^0-9]/g,"")) || 0;
+        const pColor = priceColorPick(pNum);
+
+        html += `
+          <div class="line">
+            <span style="color:${rColor}; font-weight:bold;">${src.name}</span>
+            —
+            <span style="color:${pColor}; font-weight:bold;">${src.sellPrice}</span>
+          </div>
+        `;
+      });
+    }
+
+    if (item.notes) {
+      html += `<div class="line">Notes: ${item.notes}</div>`;
+    }
+
+    html += `<hr>`;
+  });
+
+  out.innerHTML = html;
+}
+</script>
 </body>
 </html>
