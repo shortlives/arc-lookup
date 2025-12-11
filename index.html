@@ -72,7 +72,7 @@ const sheetURL =
 
 const data = [];
 
-/* Always clear search when clicked */
+/* Clear search on click */
 document.getElementById("search").addEventListener("focus", function () {
   this.value = "";
 });
@@ -141,6 +141,14 @@ document.getElementById("search").addEventListener("input", function () {
   timer = setTimeout(() => runSearch(this.value.trim()), 100);
 });
 
+function getQuestNames(item) {
+  const quests = [];
+  if (item.keep1 && item.keep1.trim()) quests.push(item.keep1.trim());
+  if (item.keep2 && item.keep2.trim()) quests.push(item.keep2.trim());
+  if (item.keep3 && item.keep3.trim()) quests.push(item.keep3.trim());
+  return quests;
+}
+
 function runSearch(query) {
   const out = document.getElementById("result");
   out.innerHTML = "";
@@ -162,21 +170,17 @@ function runSearch(query) {
     const priceNum = parseInt(item.sellPrice.replace(/[^0-9]/g,"")) || 0;
     const priceColor = priceColorPick(priceNum);
 
-    /* Check if needed for quest */
-    const neededForQuest =
-      (item.keep1 && item.keep1.trim()) ||
-      (item.keep2 && item.keep2.trim()) ||
-      (item.keep3 && item.keep3.trim());
-
-    const questTag = neededForQuest
-      ? `<span style="color:#ffd700; font-size:18px; margin-left:10px;">[Quest]</span>`
+    /* Quest names from keep1/2/3 */
+    const questNames = getQuestNames(item);
+    const questTag = questNames.length
+      ? `<span style="color:#ffd700; font-size:18px; margin-left:10px;">[${questNames.join(", ")}]</span>`
       : "";
 
     const recycleParts = [];
     if (item.recycle1) recycleParts.push(item.recycle1);
     if (item.recycle2) recycleParts.push(item.recycle2);
 
-    /* Reverse Recycle Lookup (each on its own line) */
+    /* Reverse Recycle Lookup (each line) */
     const recyclers = data.filter(d => {
       const r1 = extractItemNameFromRecycle(d.recycle1 || "").toLowerCase();
       const r2 = extractItemNameFromRecycle(d.recycle2 || "").toLowerCase();
@@ -203,11 +207,18 @@ function runSearch(query) {
         const pNum = parseInt(src.sellPrice.replace(/[^0-9]/g,"")) || 0;
         const pColor = priceColorPick(pNum);
 
+        /* Pull quest names for recycler item */
+        const srcQuest = getQuestNames(src);
+        const srcQuestTag = srcQuest.length
+          ? `<span style="color:#ffd700;"> [${srcQuest.join(", ")}]</span>`
+          : "";
+
         html += `
           <div class="line">
             <span style="color:${rColor}; font-weight:bold;">${src.name}</span>
             —
             <span style="color:${pColor}; font-weight:bold;">${src.sellPrice}</span>
+            ${srcQuestTag}
           </div>
         `;
       });
