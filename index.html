@@ -265,6 +265,7 @@ const NOTES_CSV_URL =
 
 /**
  * FULL ITEM LOOKUP CONFIG
+ * These defaults can be overridden by a CONFIG row in Items_Master.
  */
 const FULL_LOOKUP_CONFIG = {
   showApiId:       true,
@@ -333,11 +334,6 @@ function escapeHtml(str) {
  * Canonicalize a header for robust matching:
  *  - lowercase
  *  - remove all non-alphanumeric characters
- *
- * Examples:
- *  "api_id"      -> "apiid"
- *  " Item Type " -> "itemtype"
- *  "name﻿" (with BOM) -> "name"
  */
 function canonicalKey(header) {
   return (header || "")
@@ -444,30 +440,46 @@ async function fetchTextSafe(url) {
 }
 
 /**
+ * Read a CONFIG row (optional) to control which columns show in Full Item Lookup.
+ * If you add a row where the Name cell = "CONFIG", any cell in that row with:
+ *   0, no, false, hide, off
+ * under certain columns will hide that field in the full view.
+ */
+function applyVisibilityConfigFromConfigRow(fields, colIndex) {
+  function getCfg(logicalKey) {
+    const idx = colIndex[logicalKey];
+    return idx == null ? "" : (fields[idx] || "").trim();
+  }
+  function isDisabled(val) {
+    if (!val) return false;
+    const v = val.toLowerCase();
+    return v === "0" || v === "no" || v === "false" || v === "hide" || v === "off";
+  }
+
+  // Map logical columns → config flags
+  if (isDisabled(getCfg("apiid")))       FULL_LOOKUP_CONFIG.showApiId = false;
+  if (isDisabled(getCfg("rarity")))      FULL_LOOKUP_CONFIG.showRarity = false;
+  if (isDisabled(getCfg("value")))       FULL_LOOKUP_CONFIG.showValue = false;
+  if (isDisabled(getCfg("itemtype")))    FULL_LOOKUP_CONFIG.showType = false;
+  if (isDisabled(getCfg("workbench")))   FULL_LOOKUP_CONFIG.showWorkbench = false;
+  if (isDisabled(getCfg("lootarea")))    FULL_LOOKUP_CONFIG.showLootArea = false;
+  if (isDisabled(getCfg("subcategory"))) FULL_LOOKUP_CONFIG.showSubcategory = false;
+  if (isDisabled(getCfg("loadoutslots")))FULL_LOOKUP_CONFIG.showLoadout = false;
+  if (isDisabled(getCfg("ammotype")))    FULL_LOOKUP_CONFIG.showAmmoType = false;
+  if (isDisabled(getCfg("description"))) FULL_LOOKUP_CONFIG.showDescription = false;
+  if (isDisabled(getCfg("icon")))        FULL_LOOKUP_CONFIG.showIcon = false;
+  if (isDisabled(getCfg("recycle1")) &&
+      isDisabled(getCfg("recycle2")))    FULL_LOOKUP_CONFIG.showRecycles = false;
+  if (isDisabled(getCfg("salvage1")) &&
+      isDisabled(getCfg("salvage2")))    FULL_LOOKUP_CONFIG.showSalvage = false;
+  if (isDisabled(getCfg("notes")))       FULL_LOOKUP_CONFIG.showNotes = false;
+  if (isDisabled(getCfg("quest1")) &&
+      isDisabled(getCfg("quest2")) &&
+      isDisabled(getCfg("quest3")))      FULL_LOOKUP_CONFIG.showQuests = false;
+}
+
+/**
  * Parse Items_Master CSV into state.items.
- *
- * Expected logical columns (we match by canonical header names):
- *  api_id       -> "apiid"
- *  name         -> "name"
- *  rarity       -> "rarity"
- *  value        -> "value"
- *  item_type    -> "itemtype"
- *  workbench    -> "workbench"
- *  loot_area    -> "lootarea"
- *  subcategory  -> "subcategory"
- *  loadout_slots-> "loadoutslots"
- *  recycle1     -> "recycle1"
- *  recycle2     -> "recycle2"
- *  salvage1     -> "salvage1"
- *  salvage2     -> "salvage2"
- *  notes        -> "notes"
- *  enabled      -> "enabled"
- *  quest1       -> "quest1"
- *  quest2       -> "quest2"
- *  quest3       -> "quest3"
- *  description  -> "description"
- *  ammo_type    -> "ammotype"
- *  icon         -> "icon"
  */
 function parseItemsMasterCsv(csvText) {
   const rows = csvText.replace(/\r/g, "").split("\n");
@@ -481,7 +493,7 @@ function parseItemsMasterCsv(csvText) {
     if (!h) return;
     const key = canonicalKey(h);
     if (!key) return;
-    colIndex[key] = i; // last duplicate wins
+    colIndex[key] = i;
   });
   console.log("Items_Master header index (canonical):", colIndex);
 
@@ -490,10 +502,29 @@ function parseItemsMasterCsv(csvText) {
     return idx == null ? "" : (fields[idx] || "");
   }
 
+  let startRow = 1;
+
+  // Optional CONFIG row: if second row's name cell is "CONFIG", use it as visibility config.
+  if (rows.length > 1) {
+    const cfgFields = csvSplit(rows[1]);
+    const nameIdx = colIndex["name"];
+    let cfgName = "";
+    if (nameIdx != null) {
+      cfgName = (cfgFields[nameIdx] || "").trim();
+    } else if (cfgFields.length) {
+      cfgName = cfgFields[0].trim();
+    }
+
+    if (cfgName && canonicalKey(cfgName) === "config") {
+      applyVisibilityConfigFromConfigRow(cfgFields, colIndex);
+      startRow = 2; // actual data starts after CONFIG row
+    }
+  }
+
   const items = [];
   state.itemByName.clear();
 
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = startRow; i < rows.length; i++) {
     const row = rows[i];
     if (!row.trim()) continue;
 
@@ -504,7 +535,11 @@ function parseItemsMasterCsv(csvText) {
 
     const apiId        = getField(fields, "apiid").trim() || null;
     const rarity       = getField(fields, "rarity").trim();
-    const valueStr     = getField(fields, "value").trim();
+    const valueStrRaw  = getField(fields, "value").trim();
+    // NEW: strip anything that isn't digit, dot, or minus so 1,200 / "1 200" etc work
+    const valueStrNum  = valueStrRaw ? valueStrRaw.replace(/[^0-9.-]/g, "") : "";
+    const value        = valueStrNum ? Number(valueStrNum) || 0 : 0;
+
     const itemType     = getField(fields, "itemtype").trim();
     const workbench    = getField(fields, "workbench").trim();
     const lootArea     = getField(fields, "lootarea").trim();
@@ -522,8 +557,6 @@ function parseItemsMasterCsv(csvText) {
     const description  = getField(fields, "description").trim();
     const ammoType     = getField(fields, "ammotype").trim();
     const icon         = getField(fields, "icon").trim();
-
-    const value = valueStr ? Number(valueStr) || 0 : 0;
 
     // Default enabled = TRUE if blank; treat explicit FALSE/0/no as disabled
     const enabled =
@@ -684,7 +717,7 @@ function renderItemBlock(item) {
 
   let html = '<div class="item-block">';
 
-  // Title line
+  // Title line (name + value + quests)
   html += '<div class="item-title">';
   let titleInner = "";
 
@@ -708,11 +741,17 @@ function renderItemBlock(item) {
 
   html += titleInner;
 
-  // Full Info button
+  // Full Info button for this main item
   html += '<button type="button" class="full-item-btn" data-item-name="' +
           escapeHtml(item.name) + '">Full Info</button>';
 
   html += "</div>";
+
+  // Notes from sheet (moved to top of info, in red)
+  if (item.notes) {
+    html += '<div class="line" style="color:#ff6666;"><strong>Notes:</strong> ' +
+            escapeHtml(item.notes) + "</div>";
+  }
 
   // Recycles To
   const recToParts = [];
@@ -758,10 +797,6 @@ function renderItemBlock(item) {
       }
       html += "</div>";
     }
-  }
-
-  if (item.notes) {
-    html += '<div class="line">Notes: ' + escapeHtml(item.notes) + "</div>";
   }
 
   html += "<hr></div>";
@@ -842,6 +877,7 @@ function renderFullItemDetailsFromMaster(item) {
 
   let html = '<div class="item-block">';
 
+  // Title
   html += '<div class="item-title">';
   if (itemUrl) {
     html += '<a class="item-link" href="' + itemUrl +
@@ -857,6 +893,13 @@ function renderFullItemDetailsFromMaster(item) {
   }
   html += "</div>";
 
+  // Notes at top, red
+  if (FULL_LOOKUP_CONFIG.showNotes && item.notes) {
+    html += '<div class="line-small" style="color:#ff6666;"><strong>Notes:</strong> ' +
+            escapeHtml(item.notes) + "</div>";
+  }
+
+  // Core meta
   if (FULL_LOOKUP_CONFIG.showApiId && item.apiId) {
     html += '<div class="line-small">API ID: ' + escapeHtml(String(item.apiId)) + "</div>";
   }
@@ -909,11 +952,6 @@ function renderFullItemDetailsFromMaster(item) {
     if (item.salvage2) salvParts.push(item.salvage2);
     html += '<div class="line-small"><strong>Salvages To:</strong> ' +
             salvParts.map(escapeHtml).join(", ") + "</div>";
-  }
-
-  if (FULL_LOOKUP_CONFIG.showNotes && item.notes) {
-    html += '<div class="line-small"><strong>Notes:</strong> ' +
-            escapeHtml(item.notes) + "</div>";
   }
 
   if (FULL_LOOKUP_CONFIG.showQuests && item.manualQuestNames.length) {
@@ -977,6 +1015,7 @@ function attachEventHandlers() {
     }
   });
 
+  // Event delegation for per-item "Full Info" buttons
   dom.result.addEventListener("click", (event) => {
     const btn = event.target.closest(".full-item-btn");
     if (!btn) return;
