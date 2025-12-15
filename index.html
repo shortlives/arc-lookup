@@ -3,29 +3,28 @@
 <head>
   <meta charset="utf-8">
   <title>ARC Lookup</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!--
-    External library: PapaParse for robust CSV parsing.
-    This keeps our code simpler and more reliable than hand-rolled CSV parsing.
+  <!-- (Optional, when you want MetaForge tooltips)
+  <script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
   -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
   <style>
-    /* Basic page styling */
+    /* -------- Base layout -------- */
     body {
       background: #000;
       color: #fff;
-      font-family: Segoe UI, sans-serif;
+      font-family: Segoe UI, system-ui, -apple-system, sans-serif;
       padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
     }
 
-    /* Row of top navigation / utility buttons */
+    /* -------- Top nav buttons (Maps, Sheet, Important Notes) -------- */
     .top-buttons {
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 15px;
-      flex-wrap: wrap;
     }
 
     .top-buttons a,
@@ -45,7 +44,11 @@
       background: #333;
     }
 
-    /* Container to keep search box and clear button on one line */
+    .hidden {
+      display: none !important;
+    }
+
+    /* -------- Search row (input + X button) -------- */
     .search-row {
       display: flex;
       align-items: center;
@@ -53,60 +56,166 @@
       margin-bottom: 10px;
     }
 
-    /* Main search input */
-    .search-row input {
+    #search {
       font-size: 22px;
       padding: 12px;
       flex: 1;
-      min-width: 0; /* prevent overflow in flex layout */
-    }
-
-    /* Clear ("X") button next to the search field */
-    .clear-button {
-      font-size: 22px;
-      padding: 0 10px;
-      background: #222;
-      border: 1px solid #444;
       border-radius: 6px;
+      border: 1px solid #444;
+      background: #111;
       color: #fff;
-      cursor: pointer;
-      height: 48px;
-      min-width: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
-    .clear-button:hover {
+    #search::placeholder {
+      color: #777;
+    }
+
+    #clear-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid #444;
+      background: #222;
+      color: #fff;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    #clear-btn:hover {
       background: #333;
     }
 
-    /* Explainer block for color-code meaning; shown only while searching */
-    .instructions {
-      font-size: 14px;
-      margin-bottom: 10px;
+    /* -------- Legend / instructions -------- */
+    .legend {
       background: #111;
       border: 1px solid #333;
-      border-radius: 6px;
-      padding: 8px 10px;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 14px;
     }
 
-    .instructions ul {
-      margin: 4px 0 0 18px;
-      padding: 0;
+    .legend-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 6px;
     }
 
-    /* Title of the matched item */
+    .legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .legend-row strong {
+      margin-right: 4px;
+    }
+
+    .legend-chip {
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #222;
+      font-size: 13px;
+    }
+
+    /* Rarity colors in legend */
+    .legend-rarity-uncommon { color: #00ff00; }  /* Uncommon */
+    .legend-rarity-rare     { color: #1e90ff; }  /* Rare */
+    .legend-rarity-epic     { color: #ff00ff; }  /* Epic */
+    .legend-rarity-legendary{ color: #ffd700; }  /* Legendary */
+
+    /* Price colors in legend (based on numeric value) */
+    .legend-price-low       { color: #ffffff; }  /* 0–1000 */
+    .legend-price-uncommon  { color: #00ff00; }  /* 1001–2000 */
+    .legend-price-mid       { color: #ff69b4; }  /* 2001–5000 */
+    .legend-price-high      { color: #ffd700; }  /* 5001+ */
+
+    /* -------- Important Notes panel -------- */
+    .notes-panel {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .notes-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .notes-title {
+      font-size: 15px;
+    }
+
+    .notes-close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid #444;
+      background: #222;
+      color: #fff;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .notes-close-btn:hover {
+      background: #333;
+    }
+
+    .notes-list {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 14px;
+    }
+
+    .notes-list li {
+      margin: 2px 0;
+    }
+
+    /* -------- Item result styling -------- */
+    .item-block {
+      margin-bottom: 10px;
+    }
+
     .item-title {
       font-size: 26px;
       font-weight: bold;
       margin-bottom: 4px;
     }
 
-    /* Generic result lines under the title */
+    .item-price {
+      font-size: 20px;
+      margin-left: 4px;
+    }
+
+    .quest-tag {
+      color: #ffd700;
+      font-size: 18px;
+      margin-left: 10px;
+    }
+
     .line {
       margin: 4px 0;
       font-size: 18px;
+    }
+
+    .rarity-letter {
+      display: inline-block;
+      min-width: 1.1em;
+      text-align: center;
+    }
+
+    .recycle-tags {
+      margin-left: 8px;
+      font-size: 15px;
     }
 
     hr {
@@ -114,624 +223,682 @@
       margin: 10px 0;
     }
 
-    /* Panel for global / team notes */
-    #notesPanel {
-      margin-top: 15px;
-      font-size: 16px;
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 6px;
-      padding: 10px;
+    /* Small footer for attribution */
+    .footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #777;
     }
 
-    .note-entry {
-      margin-bottom: 6px;
+    .footer a {
+      color: #999;
     }
   </style>
 </head>
 <body>
 
-  <!--
-    Top navigation / utility buttons.
-    These automatically hide while the user is actively searching.
-  -->
-  <div class="top-buttons" id="topButtons">
+  <div class="top-buttons" id="top-buttons">
     <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
     <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=732163012#gid=732163012"
        target="_blank">Spreadsheet</a>
-    <!-- Button to show global / important notes from the "Important Notes" tab -->
-    <button type="button" id="showNotesBtn">Important Notes</button>
+    <button id="show-notes-btn" type="button">Important Notes</button>
   </div>
 
-  <!-- Search row: search input + "clear" button -->
+  <!-- Legend: only shown while there is an active search -->
+  <div id="legend" class="legend hidden">
+    <div class="legend-title">How to read the colors</div>
+
+    <div class="legend-row">
+      <strong>Item name (rarity):</strong>
+      <span class="legend-chip legend-rarity-uncommon">Uncommon</span>
+      <span class="legend-chip legend-rarity-rare">Rare</span>
+      <span class="legend-chip legend-rarity-epic">Epic</span>
+      <span class="legend-chip legend-rarity-legendary">Legendary</span>
+    </div>
+
+    <div class="legend-row">
+      <strong>Price color (sell value):</strong>
+      <span class="legend-chip legend-price-low">0–1000</span>
+      <span class="legend-chip legend-price-uncommon">1001–2000</span>
+      <span class="legend-chip legend-price-mid">2001–5000</span>
+      <span class="legend-chip legend-price-high">5001+</span>
+    </div>
+  </div>
+
+  <!-- Important Notes panel (from "Important Notes" tab, col A) -->
+  <div id="notes-panel" class="notes-panel hidden">
+    <div class="notes-header">
+      <span class="notes-title">Important Notes</span>
+      <button id="close-notes-btn" class="notes-close-btn" type="button" aria-label="Hide notes">×</button>
+    </div>
+    <div id="notes-body" class="notes-body">
+      <!-- Notes filled in by JS -->
+    </div>
+  </div>
+
   <div class="search-row">
     <input id="search" placeholder="Type item name..." autofocus>
-    <button type="button" id="clearSearch" class="clear-button" aria-label="Clear search">&times;</button>
+    <button id="clear-btn" type="button" aria-label="Clear search">×</button>
   </div>
 
-  <!-- Instructions about color coding, visible only while a query is active -->
-  <div id="instructions" class="instructions" style="display:none;">
-    <strong>How to read the colors:</strong>
-    <ul>
-      <li>
-        <strong>Item name color</strong> = rarity:
-        <span style="color:#00ff00;">Uncommon</span>,
-        <span style="color:#1e90ff;">Rare</span>,
-        <span style="color:#ff00ff;">Epic</span>,
-        <span style="color:#ffd700;">Legendary</span>.
-      </li>
-      <li>
-        <strong>Price color</strong>:
-        <span style="color:#ffffff;">Under 1,000</span>,
-        <span style="color:#00ff00;">1,000–2,000</span>,
-        <span style="color:#ff69b4;">2,001–5,000</span>,
-        <span style="color:#ffd700;">5,001+</span>.
-      </li>
-      <li><strong>Quest tags</strong> in gold brackets show which quests need that item.</li>
-      <li>Under <strong>Recycled From</strong>, each source shows how many of the searched item you get when recycling it.</li>
-    </ul>
-  </div>
-
-  <!-- Main search result area -->
   <div id="result"></div>
 
-  <!-- Panel for "Important Notes" (items people are searching for, etc.) -->
-  <div id="notesPanel" style="display:none;"></div>
+  <div class="footer">
+    Data and item values from the in-game sheet. Meta data courtesy of
+    <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener noreferrer">MetaForge ARC Raiders</a>.
+  </div>
 
   <script>
-    // ==============================
-    // Configuration & shared state
-    // ==============================
+    // -------------
+    // CONFIG
+    // -------------
 
-    /**
-     * Public CSV URL for the main item data.
-     * This is the already-published CSV endpoint you were using.
-     */
-    const ITEMS_CSV_URL =
+    // Main item CSV exported from your Google Sheet (first sheet)
+    const ITEMS_SHEET_URL =
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
 
-    /**
-     * CSV URL for the "Important Notes" tab.
-     * This uses the same published 2PACX ID and your provided gid=732163012.
-     * For this to work, that tab must be included in "Publish to web".
-     *
-     * Notes layout:
-     *   - Column A: the full note text (each note on its own row).
-     */
-    const IMPORTANT_NOTES_CSV_URL =
+    // "Important Notes" sheet - same published doc, but restricted to gid=732163012
+    // Column A only, one note per row.
+    const IMPORTANT_NOTES_SHEET_URL =
       "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv";
 
-    /**
-     * Main in-memory cache of item rows from the primary sheet.
-     * Each entry is:
-     *  { name, rarity, recycle1, recycle2, sellPrice, category, keep1, keep2, keep3, notes }
-     */
-    const data = [];
+    // (Reserved for future MetaForge API integration)
+    const METAFORGE_API_BASE = "https://metaforge.app/api/arc-raiders";
 
-    /**
-     * In-memory cache of important notes from the "Important Notes" tab.
-     * Each element is a simple string from column A.
-     */
-    const notesData = [];
+    // -------------
+    // STATE
+    // -------------
 
-    // Debounce timer for search input.
+    const state = {
+      // All items from the CSV (or later from MetaForge)
+      items: [],
+      // Quick lookup by lowercased name for future merges
+      itemsByName: new Map(),
+      // Important Notes (plain text rows from column A)
+      importantNotes: [],
+      itemsLoaded: false,
+      notesLoaded: false
+    };
+
+    // -------------
+    // DOM ELEMENTS
+    // -------------
+
+    const searchInput   = document.getElementById("search");
+    const resultEl      = document.getElementById("result");
+    const topButtonsEl  = document.getElementById("top-buttons");
+    const legendEl      = document.getElementById("legend");
+    const notesPanelEl  = document.getElementById("notes-panel");
+    const notesBodyEl   = document.getElementById("notes-body");
+    const showNotesBtn  = document.getElementById("show-notes-btn");
+    const clearBtn      = document.getElementById("clear-btn");
+    const closeNotesBtn = document.getElementById("close-notes-btn");
+
     let searchTimer = null;
 
-    // Track whether the notes panel is currently visible.
-    let notesPanelVisible = false;
+    // -------------
+    // INITIAL LOAD
+    // -------------
 
-    // Track loading state for important notes.
-    let notesLoaded = false;
-    let notesLoadError = null;
+    // Load item data as soon as the script runs.
+    loadItemsFromSheet();
 
-    // ==============================
-    // DOM element references
-    // ==============================
+    // -------------
+    // EVENT HANDLERS
+    // -------------
 
-    /** Main search input element */
-    const searchInput = document.getElementById("search");
-
-    /** Container that holds all rendered search results */
-    const resultContainer = document.getElementById("result");
-
-    /** Block that explains the color coding */
-    const instructionsEl = document.getElementById("instructions");
-
-    /** Group of top navigation buttons */
-    const topButtonsEl = document.getElementById("topButtons");
-
-    /** "X" button that clears the search field */
-    const clearSearchBtn = document.getElementById("clearSearch");
-
-    /** Button that toggles the Important Notes panel */
-    const showNotesBtn = document.getElementById("showNotesBtn");
-
-    /** Panel that displays important / team notes */
-    const notesPanelEl = document.getElementById("notesPanel");
-
-    // Ensure top buttons are visible on initial load.
-    setTopButtonsVisible(true);
-
-    // ==============================
-    // Event handlers
-    // ==============================
-
-    /**
-     * When the search input receives focus:
-     *  - If there was an existing query or results, treat this as "start a fresh search":
-     *      - Clear the text
-     *      - Clear results
-     *      - Show top buttons
-     */
+    // When the search box gains focus, clear any previous search and restore the main view.
     searchInput.addEventListener("focus", function () {
-      const hadText = this.value.trim() !== "";
-      const hadResults = resultContainer.innerHTML.trim() !== "";
-
-      if (hadText || hadResults) {
-        this.value = "";
-        clearTimeout(searchTimer);
-        runSearch(""); // clears results, hides instructions, shows top buttons
+      if (this.value !== "") {
+        clearSearchAndResetUI();
       }
     });
 
-    /**
-     * Whenever the user types in the search input, debounce the call
-     * to runSearch() so we do not re-run the filter logic on every keystroke.
-     */
+    // Debounced search when typing
     searchInput.addEventListener("input", function () {
       const query = this.value.trim();
 
-      // Cancel any pending search.
       clearTimeout(searchTimer);
 
-      // Schedule the search a short time after the user stops typing.
+      if (!query) {
+        // Empty input: show main buttons, hide legend, and clear results
+        resultEl.innerHTML = "";
+        legendEl.classList.add("hidden");
+        topButtonsEl.classList.remove("hidden");
+        return;
+      }
+
+      // Hide top buttons while searching
+      topButtonsEl.classList.add("hidden");
+
       searchTimer = setTimeout(() => {
-        runSearch(query);
-      }, 100);
-    });
-
-    /**
-     * Allow ESC to quickly clear the search and reset the view.
-     */
-    searchInput.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        clearSearchField();
-      }
-    });
-
-    /**
-     * Clicking the clear button empties the search field, restores the
-     * top buttons, hides instructions, and removes all current results.
-     */
-    clearSearchBtn.addEventListener("click", function () {
-      clearSearchField();
-    });
-
-    /**
-     * Clicking "Important Notes" toggles the notes panel.
-     * The contents are driven from the "Important Notes" tab.
-     */
-    showNotesBtn.addEventListener("click", function () {
-      notesPanelVisible = !notesPanelVisible;
-
-      if (notesPanelVisible) {
-        renderImportantNotes();
-        notesPanelEl.style.display = "block";
-      } else {
-        notesPanelEl.style.display = "none";
-      }
-    });
-
-    // ==============================
-    // Data loading (Google Sheets)
-    // ==============================
-
-    /**
-     * Fetch the CSV from Google Sheets for the main item data and parse it.
-     * On success, populate the "data" array with normalized item objects.
-     */
-    fetch(ITEMS_CSV_URL)
-      .then(response => response.text())
-      .then(text => {
-        // Use PapaParse for robust CSV parsing (handles quotes, commas, etc.).
-        const parsed = Papa.parse(text, {
-          header: false,       // sheet uses fixed column order, not header row
-          skipEmptyLines: true // ignore completely empty lines
-        });
-
-        const rows = parsed.data;
-
-        // Remove the first row, which contains column headings.
-        if (rows.length > 0) {
-          rows.shift();
+        if (!state.itemsLoaded) {
+          resultEl.innerHTML = "<div class='line'>Loading item data...</div>";
+          return;
         }
+        runSearch(query);
+      }, 120);
+    });
 
-        // Map each raw row array into a structured object with named fields.
-        rows.forEach(row => {
-          data.push({
-            name:      (row[0] || "").trim(),
-            rarity:    (row[1] || "").trim(),
-            recycle1:  (row[2] || "").trim(),
-            recycle2:  (row[3] || "").trim(),
-            sellPrice: (row[4] || "").trim(),
-            category:  (row[5] || "").trim(),
-            keep1:     (row[6] || "").trim(),
-            keep2:     (row[7] || "").trim(),
-            keep3:     (row[8] || "").trim(),
-            notes:     (row[9] || "").trim()
-          });
-        });
-      })
-      .catch(err => {
-        // If something goes wrong with the fetch/parse, show a friendly message.
-        console.error("Failed to load item data from the spreadsheet:", err);
-        resultContainer.innerHTML =
-          "<div style='color:#ff5555;'>Error loading data from the spreadsheet.</div>";
-      });
+    // Clear search and reset everything
+    clearBtn.addEventListener("click", function () {
+      clearSearchAndResetUI();
+      searchInput.focus();
+    });
+
+    // Show/hide Important Notes panel
+    showNotesBtn.addEventListener("click", function () {
+      if (notesPanelEl.classList.contains("hidden")) {
+        // If we haven't loaded notes yet, fetch them from the sheet first.
+        if (!state.notesLoaded) {
+          loadImportantNotes();
+        } else {
+          notesPanelEl.classList.remove("hidden");
+        }
+      } else {
+        notesPanelEl.classList.add("hidden");
+      }
+    });
+
+    // Close button in the Important Notes panel
+    closeNotesBtn.addEventListener("click", function () {
+      notesPanelEl.classList.add("hidden");
+    });
+
+    // -------------
+    // DATA LOADING
+    // -------------
 
     /**
-     * Preload the "Important Notes" data from the dedicated tab.
-     * This runs once at startup so the data is ready when the button is clicked.
+     * Load item data from the main Google Sheet CSV.
+     * This keeps the current behavior: the sheet is the source of items.
+     * Later, you can replace this with a MetaForge API loader if desired.
      */
-    loadImportantNotesData();
-
-    /**
-     * Fetch the "Important Notes" tab and populate notesData.
-     * Layout expectation:
-     *  - Column A: each row is a full note string (no header required).
-     */
-    function loadImportantNotesData() {
-      fetch(IMPORTANT_NOTES_CSV_URL)
-        .then(response => response.text())
+    function loadItemsFromSheet() {
+      fetch(ITEMS_SHEET_URL)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          return response.text();
+        })
         .then(text => {
-          const parsed = Papa.parse(text, {
-            header: false,
-            skipEmptyLines: true
-          });
+          const rows = text.replace(/\r/g, "").split("\n");
+          if (!rows.length) {
+            throw new Error("Empty CSV");
+          }
 
-          const rows = parsed.data;
+          // First row is header
+          rows.shift();
 
-          // Treat every non-empty value in column A as a note.
-          rows.forEach(row => {
-            const noteText = (row[0] || "").toString().trim();
-            if (noteText) {
-              notesData.push(noteText);
-            }
-          });
+          const items = [];
 
-          notesLoaded = true;
+          for (const row of rows) {
+            if (!row.trim()) continue;
+
+            const f = csvSplit(row);
+
+            const item = {
+              name:      (f[0] || "").trim(),
+              rarity:    (f[1] || "").trim(),
+              recycle1:  (f[2] || "").trim(),
+              recycle2:  (f[3] || "").trim(),
+              sellPrice: (f[4] || "").trim(),
+              category:  (f[5] || "").trim(),
+              keep1:     (f[6] || "").trim(),
+              keep2:     (f[7] || "").trim(),
+              keep3:     (f[8] || "").trim(),
+              notes:     (f[9] || "").trim()
+            };
+
+            if (!item.name) continue;
+
+            items.push(item);
+          }
+
+          state.items = items;
+          state.itemsByName.clear();
+          for (const item of items) {
+            state.itemsByName.set(item.name.toLowerCase(), item);
+          }
+          state.itemsLoaded = true;
         })
         .catch(err => {
-          console.error("Failed to load Important Notes from the spreadsheet:", err);
-          notesLoadError = err;
-          notesLoaded = true;
+          console.error("Error loading items CSV:", err);
+          resultEl.innerHTML = "<div class='line'>Error loading item list from the spreadsheet.</div>";
         });
     }
 
-    // ==============================
-    // Helper functions
-    // ==============================
-
     /**
-     * Show or hide the top navigation buttons.
-     * While the user is actively searching, we hide them to give
-     * more vertical space and keep focus on results.
+     * Load Important Notes from the "Important Notes" tab.
+     * Uses only column A, one note per row.
      */
-    function setTopButtonsVisible(visible) {
-      topButtonsEl.style.display = visible ? "flex" : "none";
+    function loadImportantNotes() {
+      notesBodyEl.innerHTML = "<div class='line'>Loading Important Notes...</div>";
+      notesPanelEl.classList.remove("hidden");
+
+      fetch(IMPORTANT_NOTES_SHEET_URL)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+          return response.text();
+        })
+        .then(text => {
+          const rows = text.replace(/\r/g, "").split("\n");
+          const notes = [];
+
+          for (const row of rows) {
+            if (!row.trim()) continue;
+            const cols = csvSplit(row);
+            const note = (cols[0] || "").trim();
+            if (note) notes.push(note);
+          }
+
+          state.importantNotes = notes;
+          state.notesLoaded = true;
+          renderImportantNotes();
+        })
+        .catch(err => {
+          console.error("Error loading Important Notes:", err);
+          notesBodyEl.innerHTML =
+            "<div class='line'>Error loading Important Notes from the spreadsheet.</div>";
+        });
     }
 
     /**
-     * Centralized way to clear the search field and reset the UI:
-     *  - Clears text
-     *  - Cancels any pending search debounce
-     *  - Clears results
-     *  - Hides instructions
-     *  - Restores top buttons
-     *  - Re-focuses the input
+     * Render Important Notes list into the panel.
      */
-    function clearSearchField() {
+    function renderImportantNotes() {
+      if (!state.importantNotes.length) {
+        notesBodyEl.innerHTML = "<div class='line'>No Important Notes found.</div>";
+        return;
+      }
+
+      const itemsHtml = state.importantNotes
+        .map(note => "<li>" + escapeHtml(note) + "</li>")
+        .join("");
+
+      notesBodyEl.innerHTML = "<ul class='notes-list'>" + itemsHtml + "</ul>";
+    }
+
+    // -------------
+    // SEARCH + RENDERING
+    // -------------
+
+    /**
+     * Clear the search field, results, and restore the main view.
+     */
+    function clearSearchAndResetUI() {
       searchInput.value = "";
       clearTimeout(searchTimer);
-      runSearch("");     // handles instructions + top button visibility
-      searchInput.focus();
+      resultEl.innerHTML = "";
+      legendEl.classList.add("hidden");
+      topButtonsEl.classList.remove("hidden");
     }
 
     /**
-     * Given a recycle string (e.g. "2 x Some Item"), strip off any leading
-     * quantity such as "2 x" and return just the item name ("Some Item").
-     */
-    function extractItemNameFromRecycle(str) {
-      // Remove leading "<number> x " if present and trim whitespace.
-      return str.replace(/^\s*\d+\s*x\s*/i, "").trim();
-    }
-
-    /**
-     * Given a recycle string (e.g. "2 x Some Item"), extract the numeric
-     * quantity of target items produced. If no quantity is specified, assume 1.
-     */
-    function extractQuantityFromRecycle(str) {
-      const match = str.match(/^\s*(\d+)\s*x?/i);
-      if (!match) {
-        // No explicit quantity found; default to 1.
-        return 1;
-      }
-      const qty = parseInt(match[1], 10);
-      return Number.isNaN(qty) ? 1 : qty;
-    }
-
-    /**
-     * Return a hex color representing rarity for the item's name.
-     * Fallback is white when rarity does not match the known labels.
-     */
-    function rarityColor(rarity) {
-      const r = rarity.toLowerCase();
-      if (r.includes("uncommon")) return "#00ff00"; // green
-      if (r.includes("rare"))     return "#1e90ff"; // blue
-      if (r.includes("epic"))     return "#ff00ff"; // magenta
-      if (r.includes("legendary"))return "#ffd700"; // gold
-      return "white";
-    }
-
-    /**
-     * Parse a sell price string to a numeric value.
-     * Strips non-digits and returns 0 if parsing fails.
-     */
-    function parsePrice(value) {
-      const numeric = parseInt(String(value || "").replace(/[^0-9]/g, ""), 10);
-      return Number.isNaN(numeric) ? 0 : numeric;
-    }
-
-    /**
-     * Return a hex color for the price text based on numeric value.
-     *  - white: under 1,000
-     *  - green: 1,000–2,000
-     *  - pink:  2,001–5,000
-     *  - gold:  5,001+
-     */
-    function priceColorPick(priceNumber) {
-      if (priceNumber >= 1000 && priceNumber <= 2000) return "#00ff00"; // green
-      if (priceNumber >= 2001 && priceNumber <= 5000) return "#ff69b4"; // pink
-      if (priceNumber >= 5001)                       return "#ffd700"; // gold
-      return "white"; // under 1000
-    }
-
-    /**
-     * Collect quest / usage names for an item from its keep1/keep2/keep3
-     * fields and return them as an array of non-empty strings.
+     * Return an array of quest names from keep1/keep2/keep3.
      */
     function getQuestNames(item) {
       const quests = [];
-
       if (item.keep1) quests.push(item.keep1.trim());
       if (item.keep2) quests.push(item.keep2.trim());
       if (item.keep3) quests.push(item.keep3.trim());
-
       return quests;
     }
 
     /**
-     * Render a quest tag for an item as a small styled span.
-     * When "small" is true, we use a simpler style (for the recycled-from lines).
-     */
-    function renderQuestTag(item, { small = false } = {}) {
-      const questNames = getQuestNames(item);
-      if (!questNames.length) return "";
-
-      const style = small
-        ? "color:#ffd700;"
-        : "color:#ffd700; font-size:18px; margin-left:10px;";
-
-      return `<span style="${style}">[${questNames.join(", ")}]</span>`;
-    }
-
-    /**
-     * For a given "source" item and a target item name, compute how many
-     * of the target item you get when recycling the source.
-     *
-     * It checks both recycle1 and recycle2 fields; if both yield the same
-     * target, their quantities are summed.
-     *
-     * @param {Object} srcItem    - source item (has recycle1/recycle2 fields)
-     * @param {string} targetName - name of the item being searched
-     * @returns {number|null} quantity of target produced or null if none
-     */
-    function getRecycleQuantityForTarget(srcItem, targetName) {
-      const lowerTarget = targetName.toLowerCase();
-      let totalQty = 0;
-
-      ["recycle1", "recycle2"].forEach(key => {
-        const raw = srcItem[key];
-        if (!raw) return;
-
-        const producedName = extractItemNameFromRecycle(raw).toLowerCase();
-
-        if (producedName === lowerTarget) {
-          totalQty += extractQuantityFromRecycle(raw);
-        }
-      });
-
-      return totalQty > 0 ? totalQty : null;
-    }
-
-    // ==============================
-    // Rendering functions
-    // ==============================
-
-    /**
-     * Main search routine.
-     *  - Filters items by name matching the query (case-insensitive).
-     *  - Renders all matched items into the result container.
-     *  - Shows/hides top buttons and instructions based on query presence.
+     * Main search: match by partial item name (case insensitive).
      */
     function runSearch(query) {
-      // Always clear existing results on each new search.
-      resultContainer.innerHTML = "";
+      const q = query.toLowerCase();
 
-      const hasQuery = Boolean(query);
-
-      // Show or hide top buttons and instructions depending on query.
-      setTopButtonsVisible(!hasQuery);
-      instructionsEl.style.display = hasQuery ? "block" : "none";
-
-      // If query is empty after trimming, nothing else to do.
-      if (!hasQuery) {
-        return;
-      }
-
-      const lowerQuery = query.toLowerCase();
-
-      // Filter items whose name includes the search text.
-      const matches = data.filter(item =>
-        item.name.toLowerCase().includes(lowerQuery)
+      const matches = state.items.filter(
+        item => item.name.toLowerCase().includes(q)
       );
 
       if (!matches.length) {
-        resultContainer.innerHTML = "<div>No match</div>";
+        resultEl.innerHTML = "<div class='line'>No match</div>";
+        legendEl.classList.add("hidden");
         return;
       }
 
-      // Build a single HTML string for all results to minimize DOM writes.
       let html = "";
 
-      matches.forEach(item => {
-        // Determine color for the item name based on rarity.
-        const nameColor = rarityColor(item.rarity);
+      for (const item of matches) {
+        html += renderItem(item);
+      }
 
-        // Parse numeric sell price and determine its color.
-        const priceNumber = parsePrice(item.sellPrice);
-        const priceColor = priceColorPick(priceNumber);
-
-        // Quest usage tag next to the title, using keep1/keep2/keep3.
-        const questTag = renderQuestTag(item);
-
-        // Build simple "Recycles To" text using recycle1 + recycle2 fields.
-        const recycleTargets = [];
-        if (item.recycle1) recycleTargets.push(item.recycle1);
-        if (item.recycle2) recycleTargets.push(item.recycle2);
-
-        // Find all other items that recycle into THIS item.
-        const recyclers = data.filter(src => {
-          const r1 = extractItemNameFromRecycle(src.recycle1 || "").toLowerCase();
-          const r2 = extractItemNameFromRecycle(src.recycle2 || "").toLowerCase();
-          const targetLower = item.name.toLowerCase();
-          return r1 === targetLower || r2 === targetLower;
-        });
-
-        // =====================
-        // Title line
-        // =====================
-        html += `
-          <div class="item-title">
-            <span style="color:${nameColor};">${item.name}</span>
-            <span style="color:${priceColor}; font-size:20px;">— ${item.sellPrice}</span>
-            ${questTag}
-          </div>
-        `;
-
-        // =====================
-        // "Recycles To" line
-        // =====================
-        if (recycleTargets.length) {
-          html += `
-            <div class="line">
-              Recycles To: ${recycleTargets.join(", ")}
-            </div>
-          `;
-        }
-
-        // =====================
-        // "Recycled From" section
-        // =====================
-        if (recyclers.length) {
-          html += `
-            <div class="line" style="color:#ffa500;">Recycled From:</div>
-          `;
-
-          recyclers.forEach(src => {
-            const srcNameColor = rarityColor(src.rarity);
-
-            const srcPriceNumber = parsePrice(src.sellPrice);
-            const srcPriceColor = priceColorPick(srcPriceNumber);
-
-            // Quest names for the source item.
-            const srcQuestTag = renderQuestTag(src, { small: true });
-
-            // Quantity of the current item yielded when recycling this source.
-            const qty = getRecycleQuantityForTarget(src, item.name);
-            const qtyText = qty !== null
-              ? `<span style="margin-left:8px; font-size:16px; color:#cccccc;">→ Yields ${qty}x ${item.name}</span>`
-              : "";
-
-            html += `
-              <div class="line">
-                <span style="color:${srcNameColor}; font-weight:bold;">${src.name}</span>
-                —
-                <span style="color:${srcPriceColor}; font-weight:bold;">${src.sellPrice}</span>
-                ${srcQuestTag}
-                ${qtyText}
-              </div>
-            `;
-          });
-        }
-
-        // =====================
-        // Notes line (if present)
-        // =====================
-        if (item.notes) {
-          html += `
-            <div class="line">
-              Notes: ${item.notes}
-            </div>
-          `;
-        }
-
-        html += `<hr>`;
-      });
-
-      // Push the assembled HTML into the results container.
-      resultContainer.innerHTML = html;
+      resultEl.innerHTML = html;
+      legendEl.classList.remove("hidden");
     }
 
     /**
-     * Render the Important Notes panel using rows from the "Important Notes" tab.
-     * Intended for things like "what items each player is searching for".
-     * Each note is a full string from column A.
+     * Render a single item block (title, recycle chains, notes).
      */
-    function renderImportantNotes() {
-      // Handle load errors cleanly.
-      if (notesLoadError) {
-        notesPanelEl.innerHTML =
-          "<div style='color:#ff5555;'>Error loading Important Notes from the spreadsheet.</div>";
-        return;
+    function renderItem(item) {
+      const nameColor = rarityColor(item.rarity);
+
+      const priceNumber = getNumericPrice(item.sellPrice);
+      const priceColor = priceColorFromValue(priceNumber);
+
+      const questNames = getQuestNames(item);
+      const questTag = questNames.length
+        ? "<span class='quest-tag'>[" + questNames.map(escapeHtml).join(", ") + "]</span>"
+        : "";
+
+      const recyclesToParts = [];
+      if (item.recycle1) recyclesToParts.push(item.recycle1);
+      if (item.recycle2) recyclesToParts.push(item.recycle2);
+
+      const recyclers = findRecyclersForItem(item.name);
+
+      let html = "";
+
+      // Title line: colored name and price
+      html += "<div class='item-block'>";
+      html += "<div class='item-title'>" +
+                "<span style='color:" + nameColor + ";'>" + escapeHtml(item.name) + "</span>" +
+                "<span class='item-price' style='color:" + priceColor + ";'> — " +
+                  escapeHtml(item.sellPrice) +
+                "</span>" +
+                questTag +
+              "</div>";
+
+      // "Recycles To" section
+      if (recyclesToParts.length) {
+        const list = recyclesToParts.map(escapeHtml).join(", ");
+        html += "<div class='line'>Recycles To: " + list + "</div>";
       }
 
-      // If the data has not loaded yet, let the user know.
-      if (!notesLoaded) {
-        notesPanelEl.innerHTML =
-          "<div>Important Notes are still loading. Please try again in a moment.</div>";
-        return;
+      // "Recycled From" section with rarity letter and R-#
+      if (recyclers.length) {
+        html += "<div class='line' style='color:#ffa500;'>Recycled From:</div>";
+
+        for (const rec of recyclers) {
+          const src = rec.source;
+
+          const rarityClr = rarityColor(src.rarity);
+          const rarityLetter = getRarityLetter(src.rarity);
+
+          const srcPriceNumber = getNumericPrice(src.sellPrice);
+          const srcPriceColor = priceColorFromValue(srcPriceNumber);
+
+          const tags = [];
+          if (rec.recycleAmount > 0) {
+            tags.push("R-" + rec.recycleAmount);
+          }
+          if (rec.salvageAmount > 0) {
+            tags.push("S-" + rec.salvageAmount);
+          }
+          const amountTag = tags.length
+            ? "<span class='recycle-tags'>" + tags.join("  ") + "</span>"
+            : "";
+
+          const srcQuests = getQuestNames(src);
+          const srcQuestTag = srcQuests.length
+            ? "<span class='quest-tag'>[" + srcQuests.map(escapeHtml).join(", ") + "]</span>"
+            : "";
+
+          html += "<div class='line'>" +
+                    "<span style='color:#ffffff; font-weight:bold;'>" +
+                      escapeHtml(src.name) +
+                    "</span>";
+
+          if (rarityLetter) {
+            html += "<span class='rarity-letter' " +
+                    "style='color:" + rarityClr + "; font-weight:bold; margin-left:6px;'>" +
+                      rarityLetter +
+                    "</span>";
+          }
+
+          if (amountTag) {
+            html += " " + amountTag;
+          }
+
+          html += " — " +
+                    "<span style='color:" + srcPriceColor + "; font-weight:bold;'>" +
+                      escapeHtml(src.sellPrice) +
+                    "</span>" +
+                    srcQuestTag +
+                  "</div>";
+        }
       }
 
-      if (!notesData.length) {
-        notesPanelEl.innerHTML =
-          "<div>No important notes are configured in the sheet yet.</div>";
-        return;
+      // Optional notes from the sheet
+      if (item.notes) {
+        html += "<div class='line'>Notes: " + escapeHtml(item.notes) + "</div>";
       }
 
-      // Build a simple bullet list of note entries.
-      let html = "<div><strong>Important Notes</strong></div><br><ul>";
+      html += "<hr></div>";
 
-      notesData.forEach(note => {
-        html += `
-          <li class="note-entry">${note}</li>
-        `;
+      return html;
+    }
+
+    /**
+     * Find all items that recycle into the given target item.
+     * Uses recycle1/recycle2 text like "3 x Wires".
+     * Returns an array: { source, recycleAmount, salvageAmount }
+     * (salvageAmount is reserved for future API wiring and is 0 for now).
+     */
+    function findRecyclersForItem(targetName) {
+      const target = targetName.toLowerCase();
+      const result = [];
+
+      for (const src of state.items) {
+        let recycleAmount = 0;
+        let salvageAmount = 0; // Placeholder for future "salvages into" data
+
+        if (src.recycle1) {
+          const info1 = parseRecycleString(src.recycle1);
+          if (info1.name && info1.name.toLowerCase() === target) {
+            recycleAmount += info1.amount;
+          }
+        }
+
+        if (src.recycle2) {
+          const info2 = parseRecycleString(src.recycle2);
+          if (info2.name && info2.name.toLowerCase() === target) {
+            recycleAmount += info2.amount;
+          }
+        }
+
+        if (recycleAmount > 0 || salvageAmount > 0) {
+          result.push({ source: src, recycleAmount, salvageAmount });
+        }
+      }
+
+      return result;
+    }
+
+    // -------------
+    // HELPERS
+    // -------------
+
+    /**
+     * Split a single CSV row into fields, handling quoted fields with commas.
+     */
+    function csvSplit(row) {
+      const out = [];
+      let field = "";
+      let inQuotes = false;
+
+      for (const ch of row) {
+        if (ch === "\"") {
+          inQuotes = !inQuotes;
+          continue;
+        }
+        if (ch === "," && !inQuotes) {
+          out.push(field);
+          field = "";
+          continue;
+        }
+        field += ch;
+      }
+
+      out.push(field);
+      return out;
+    }
+
+    /**
+     * Strip "3 x " from "3 x Wires" and return just "Wires".
+     */
+    function extractItemNameFromRecycle(str) {
+      return str.replace(/^\s*\d+\s*x\s*/i, "").trim();
+    }
+
+    /**
+     * Extract numeric amount from "3 x Wires" (defaults to 1 if no number).
+     */
+    function extractAmountFromRecycle(str) {
+      const match = str.match(/^\s*(\d+)\s*x\s*/i);
+      if (!match) return 1;
+      const n = parseInt(match[1], 10);
+      return Number.isFinite(n) && n > 0 ? n : 1;
+    }
+
+    /**
+     * Parse a recycle string into { amount, name }.
+     */
+    function parseRecycleString(str) {
+      const trimmed = (str || "").trim();
+      if (!trimmed) return { amount: 0, name: "" };
+      return {
+        amount: extractAmountFromRecycle(trimmed),
+        name: extractItemNameFromRecycle(trimmed)
+      };
+    }
+
+    /**
+     * Convert a sellPrice string into a numeric value.
+     * Removes all non-digits, so "1,280" or "1280 Tokens" both work.
+     */
+    function getNumericPrice(priceStr) {
+      if (!priceStr) return 0;
+      const digits = priceStr.replace(/[^0-9]/g, "");
+      if (!digits) return 0;
+      return parseInt(digits, 10);
+    }
+
+    /**
+     * Map rarity text to a color.
+     */
+    function rarityColor(rarity) {
+      const r = (rarity || "").toLowerCase();
+      if (r.includes("uncommon"))  return "#00ff00";
+      if (r.includes("rare"))      return "#1e90ff";
+      if (r.includes("epic"))      return "#ff00ff";
+      if (r.includes("legendary")) return "#ffd700";
+      return "white";
+    }
+
+    /**
+     * Map rarity text to a 1-letter code for the "Recycled From" line.
+     */
+    function getRarityLetter(rarity) {
+      const r = (rarity || "").toLowerCase();
+      if (r.includes("uncommon"))  return "U";
+      if (r.includes("rare"))      return "R";
+      if (r.includes("epic"))      return "E";
+      if (r.includes("legendary")) return "L";
+      // For "common" or unknown, no letter to keep the UI clean.
+      return "";
+    }
+
+    /**
+     * Map numeric sell price to a color band:
+     * 0–1000: white
+     * 1001–2000: green
+     * 2001–5000: pink
+     * 5001+: gold
+     */
+    function priceColorFromValue(n) {
+      if (n >= 1001 && n <= 2000) return "#00ff00"; // "uncommon" price band
+      if (n >= 2001 && n <= 5000) return "#ff69b4";
+      if (n >= 5001)              return "#ffd700";
+      return "#ffffff";
+    }
+
+    /**
+     * Simple HTML escaping for any user/game text we render with innerHTML.
+     */
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, function (ch) {
+        switch (ch) {
+          case "&": return "&amp;";
+          case "<": return "&lt;";
+          case ">": return "&gt;";
+          case "\"": return "&quot;";
+          case "'": return "&#39;";
+          default: return ch;
+        }
       });
+    }
 
-      html += "</ul>";
+    // -------------
+    // METAForge API HOOK (for later)
+    // -------------
 
-      notesPanelEl.innerHTML = html;
+    /**
+     * Example of how you could swap the sheet for the MetaForge API:
+     *
+     * 1. Fetch items from METAFORGE_API_BASE + "/items?perPage=500"
+     * 2. Inspect the JSON structure in your browser DevTools.
+     * 3. Map each API item to the same shape used above in renderItem().
+     *
+     * Once you have the field names, you could:
+     *   - Replace loadItemsFromSheet() with this function, or
+     *   - Call both (API for core data, sheet for extra notes) and merge them.
+     *
+     * Keeping this here as a clearly documented hook, but not calling it yet
+     * so your current sheet-based version continues to work.
+     */
+    async function loadItemsFromMetaForgeExample() {
+      try {
+        const response = await fetch(METAFORGE_API_BASE + "/items?perPage=500");
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+
+        const json = await response.json();
+
+        // Depending on the actual response shape, adjust these lines.
+        const apiItems = Array.isArray(json.data) ? json.data : json;
+
+        const items = apiItems.map(apiItem => {
+          // TODO: Replace property names below with the real ones
+          const name   = apiItem.name || "";
+          const rarity = apiItem.rarity || "";
+          const value  = apiItem.value != null ? String(apiItem.value) : "";
+
+          // You can also pull recycle/crafting info here once you see
+          // which fields MetaForge exposes for components / recycling.
+          return {
+            name:      name,
+            rarity:    rarity,
+            recycle1:  "",         // map from API when available
+            recycle2:  "",
+            sellPrice: value,
+            category:  apiItem.type || "",
+            keep1:     "",         // you can merge your sheet "keep" flags here
+            keep2:     "",
+            keep3:     "",
+            notes:     ""          // merge per-item notes from your own sheet by name
+          };
+        });
+
+        state.items = items;
+        state.itemsByName.clear();
+        for (const item of items) {
+          state.itemsByName.set(item.name.toLowerCase(), item);
+        }
+        state.itemsLoaded = true;
+      } catch (err) {
+        console.error("Error loading items from MetaForge API:", err);
+        resultEl.innerHTML =
+          "<div class='line'>Error loading items from MetaForge API. See console for details.</div>";
+      }
     }
   </script>
 </body>
