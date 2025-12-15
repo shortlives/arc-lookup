@@ -127,10 +127,6 @@
     .note-entry {
       margin-bottom: 6px;
     }
-
-    .note-entry strong {
-      color: #ffd700;
-    }
   </style>
 </head>
 <body>
@@ -157,13 +153,20 @@
   <div id="instructions" class="instructions" style="display:none;">
     <strong>How to read the colors:</strong>
     <ul>
-      <li><strong>Item name color</strong> = rarity
-        (Uncommon = green, Rare = blue, Epic = magenta, Legendary = gold).</li>
-      <li><strong>Price color</strong>:
-        White = under 1,000 &bullet;
-        Green = 1,000–2,000 &bullet;
-        Pink = 2,001–5,000 &bullet;
-        Gold = 5,001+.</li>
+      <li>
+        <strong>Item name color</strong> = rarity:
+        <span style="color:#00ff00;">Uncommon</span>,
+        <span style="color:#1e90ff;">Rare</span>,
+        <span style="color:#ff00ff;">Epic</span>,
+        <span style="color:#ffd700;">Legendary</span>.
+      </li>
+      <li>
+        <strong>Price color</strong>:
+        <span style="color:#ffffff;">Under 1,000</span>,
+        <span style="color:#00ff00;">1,000–2,000</span>,
+        <span style="color:#ff69b4;">2,001–5,000</span>,
+        <span style="color:#ffd700;">5,001+</span>.
+      </li>
       <li><strong>Quest tags</strong> in gold brackets show which quests need that item.</li>
       <li>Under <strong>Recycled From</strong>, each source shows how many of the searched item you get when recycling it.</li>
     </ul>
@@ -189,18 +192,14 @@
 
     /**
      * CSV URL for the "Important Notes" tab.
-     * This uses the sheet name "Important Notes" and the main doc ID:
-     *   1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U
+     * This uses the same published 2PACX ID and your provided gid=732163012.
+     * For this to work, that tab must be included in "Publish to web".
      *
-     * Requirements:
-     *  - That tab must be accessible publicly (either "Anyone with link can view"
-     *    or "Published to the web") so GitHub Pages can fetch it.
-     *  - The tab should have at least:
-     *      Column A: Title / Name (e.g., player)
-     *      Column J (if using full layout) OR Column B: Note text
+     * Notes layout:
+     *   - Column A: the full note text (each note on its own row).
      */
     const IMPORTANT_NOTES_CSV_URL =
-      "https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/gviz/tq?tqx=out:csv&sheet=Important%20Notes";
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv";
 
     /**
      * Main in-memory cache of item rows from the primary sheet.
@@ -211,8 +210,7 @@
 
     /**
      * In-memory cache of important notes from the "Important Notes" tab.
-     * Each entry is:
-     *  { title, text }
+     * Each element is a simple string from column A.
      */
     const notesData = [];
 
@@ -259,11 +257,21 @@
     // ==============================
 
     /**
-     * When the search input receives focus, clear its current value.
-     * This makes it faster to run multiple searches in a row.
+     * When the search input receives focus:
+     *  - If there was an existing query or results, treat this as "start a fresh search":
+     *      - Clear the text
+     *      - Clear results
+     *      - Show top buttons
      */
     searchInput.addEventListener("focus", function () {
-      this.value = "";
+      const hadText = this.value.trim() !== "";
+      const hadResults = resultContainer.innerHTML.trim() !== "";
+
+      if (hadText || hadResults) {
+        this.value = "";
+        clearTimeout(searchTimer);
+        runSearch(""); // clears results, hides instructions, shows top buttons
+      }
     });
 
     /**
@@ -370,10 +378,8 @@
 
     /**
      * Fetch the "Important Notes" tab and populate notesData.
-     * Tries to interpret:
-     *   - Column A as the title/name
-     *   - Column J (index 9) as the note text if present
-     *   - Otherwise falls back to Column B as the note text
+     * Layout expectation:
+     *  - Column A: each row is a full note string (no header required).
      */
     function loadImportantNotesData() {
       fetch(IMPORTANT_NOTES_CSV_URL)
@@ -386,29 +392,12 @@
 
           const rows = parsed.data;
 
-          // Remove header row if present.
-          if (rows.length > 0) {
-            rows.shift();
-          }
-
+          // Treat every non-empty value in column A as a note.
           rows.forEach(row => {
-            const title = (row[0] || "").trim() || "Note";
-
-            // Prefer column J (index 9) for "Notes" if it exists,
-            // otherwise fall back to column B (index 1).
-            const textCell =
-              ((row[9] !== undefined ? row[9] : "") || "").toString().trim() ||
-              ((row[1] !== undefined ? row[1] : "") || "").toString().trim();
-
-            if (!textCell) {
-              // If there's no actual note text, skip this row.
-              return;
+            const noteText = (row[0] || "").toString().trim();
+            if (noteText) {
+              notesData.push(noteText);
             }
-
-            notesData.push({
-              title,
-              text: textCell
-            });
           });
 
           notesLoaded = true;
@@ -436,6 +425,7 @@
     /**
      * Centralized way to clear the search field and reset the UI:
      *  - Clears text
+     *  - Cancels any pending search debounce
      *  - Clears results
      *  - Hides instructions
      *  - Restores top buttons
@@ -443,6 +433,7 @@
      */
     function clearSearchField() {
       searchInput.value = "";
+      clearTimeout(searchTimer);
       runSearch("");     // handles instructions + top button visibility
       searchInput.focus();
     }
@@ -484,6 +475,15 @@
     }
 
     /**
+     * Parse a sell price string to a numeric value.
+     * Strips non-digits and returns 0 if parsing fails.
+     */
+    function parsePrice(value) {
+      const numeric = parseInt(String(value || "").replace(/[^0-9]/g, ""), 10);
+      return Number.isNaN(numeric) ? 0 : numeric;
+    }
+
+    /**
      * Return a hex color for the price text based on numeric value.
      *  - white: under 1,000
      *  - green: 1,000–2,000
@@ -509,6 +509,21 @@
       if (item.keep3) quests.push(item.keep3.trim());
 
       return quests;
+    }
+
+    /**
+     * Render a quest tag for an item as a small styled span.
+     * When "small" is true, we use a simpler style (for the recycled-from lines).
+     */
+    function renderQuestTag(item, { small = false } = {}) {
+      const questNames = getQuestNames(item);
+      if (!questNames.length) return "";
+
+      const style = small
+        ? "color:#ffd700;"
+        : "color:#ffd700; font-size:18px; margin-left:10px;";
+
+      return `<span style="${style}">[${questNames.join(", ")}]</span>`;
     }
 
     /**
@@ -584,18 +599,12 @@
         // Determine color for the item name based on rarity.
         const nameColor = rarityColor(item.rarity);
 
-        // Parse numeric sell price from the raw string (strip non-digits).
-        const priceNumber =
-          parseInt(item.sellPrice.replace(/[^0-9]/g, ""), 10) || 0;
-
-        // Determine color for the price based on numeric thresholds.
+        // Parse numeric sell price and determine its color.
+        const priceNumber = parsePrice(item.sellPrice);
         const priceColor = priceColorPick(priceNumber);
 
         // Quest usage tag next to the title, using keep1/keep2/keep3.
-        const questNames = getQuestNames(item);
-        const questTag = questNames.length
-          ? `<span style="color:#ffd700; font-size:18px; margin-left:10px;">[${questNames.join(", ")}]</span>`
-          : "";
+        const questTag = renderQuestTag(item);
 
         // Build simple "Recycles To" text using recycle1 + recycle2 fields.
         const recycleTargets = [];
@@ -643,16 +652,11 @@
           recyclers.forEach(src => {
             const srcNameColor = rarityColor(src.rarity);
 
-            const srcPriceNumber =
-              parseInt(src.sellPrice.replace(/[^0-9]/g, ""), 10) || 0;
-
+            const srcPriceNumber = parsePrice(src.sellPrice);
             const srcPriceColor = priceColorPick(srcPriceNumber);
 
             // Quest names for the source item.
-            const srcQuestNames = getQuestNames(src);
-            const srcQuestTag = srcQuestNames.length
-              ? `<span style="color:#ffd700;"> [${srcQuestNames.join(", ")}]</span>`
-              : "";
+            const srcQuestTag = renderQuestTag(src, { small: true });
 
             // Quantity of the current item yielded when recycling this source.
             const qty = getRecycleQuantityForTarget(src, item.name);
@@ -693,6 +697,7 @@
     /**
      * Render the Important Notes panel using rows from the "Important Notes" tab.
      * Intended for things like "what items each player is searching for".
+     * Each note is a full string from column A.
      */
     function renderImportantNotes() {
       // Handle load errors cleanly.
@@ -715,16 +720,16 @@
         return;
       }
 
-      // Build a small list of note entries.
-      let html = "<div><strong>Important Notes</strong></div><br>";
+      // Build a simple bullet list of note entries.
+      let html = "<div><strong>Important Notes</strong></div><br><ul>";
 
       notesData.forEach(note => {
         html += `
-          <div class="note-entry">
-            <strong>${note.title}:</strong> ${note.text}
-          </div>
+          <li class="note-entry">${note}</li>
         `;
       });
+
+      html += "</ul>";
 
       notesPanelEl.innerHTML = html;
     }
