@@ -65,6 +65,26 @@
       background:#333;
     }
 
+    .filters-row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-bottom:10px;
+    }
+
+    .filters-row button {
+      background:#222;
+      color:#fff;
+      border:1px solid #444;
+      border-radius:6px;
+      padding:4px 10px;
+      font-size:13px;
+      cursor:pointer;
+    }
+    .filters-row button:hover {
+      background:#333;
+    }
+
     .instructions {
       background:#111;
       border:1px solid #333;
@@ -211,14 +231,23 @@
     <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit#gid=491619272"
        target="_blank" rel="noopener noreferrer">Spreadsheet</a>
     <button type="button" id="showAllBtn">Show All (High → Low)</button>
-    <button type="button" id="showHiddenBtn">Show Weapon/Mod/BP/Key/Quest/Misc Only</button>
-    <button type="button" id="showDefaultBtn" class="hidden">Back to Default</button>
     <button type="button" id="notesToggle">Important Notes</button>
   </div>
 
   <div class="search-row">
     <input id="search" placeholder="Type item name..." autofocus>
     <button id="clear-search" type="button" aria-label="Clear search">×</button>
+  </div>
+
+  <!-- Category filter buttons under search; hidden until Show All is used -->
+  <div class="filters-row hidden" id="filtersRow">
+    <button type="button" id="filterDefaultBtn">Default</button>
+    <button type="button" id="filterWeaponBtn">Weapon</button>
+    <button type="button" id="filterModsBtn">Modifications</button>
+    <button type="button" id="filterBlueprintBtn">Blueprint</button>
+    <button type="button" id="filterKeyBtn">Key</button>
+    <button type="button" id="filterQuestBtn">Quest Item</button>
+    <button type="button" id="filterMiscBtn">Misc</button>
   </div>
 
   <!-- Shown only when there is text in the search box -->
@@ -268,7 +297,7 @@ const NOTES_CSV_URL =
 
 /**
  * Item types to hide by default in "Show All" view,
- * but expose via "Show Weapon/Mod/BP/Key/Quest/Misc Only".
+ * but exposed via category buttons.
  */
 const HIDDEN_ITEM_TYPES = new Set([
   "weapon",
@@ -296,17 +325,23 @@ const state = {
 
 // DOM cache
 const dom = {
-  search:        document.getElementById("search"),
-  clearSearch:   document.getElementById("clear-search"),
-  topButtons:    document.getElementById("topButtons"),
-  instructions:  document.getElementById("instructions"),
-  result:        document.getElementById("result"),
-  notesPanel:    document.getElementById("notesPanel"),
-  notesContent:  document.getElementById("notesContent"),
-  notesToggle:   document.getElementById("notesToggle"),
-  showAllBtn:    document.getElementById("showAllBtn"),
-  showHiddenBtn: document.getElementById("showHiddenBtn"),
-  showDefaultBtn:document.getElementById("showDefaultBtn")
+  search:           document.getElementById("search"),
+  clearSearch:      document.getElementById("clear-search"),
+  topButtons:       document.getElementById("topButtons"),
+  instructions:     document.getElementById("instructions"),
+  result:           document.getElementById("result"),
+  notesPanel:       document.getElementById("notesPanel"),
+  notesContent:     document.getElementById("notesContent"),
+  notesToggle:      document.getElementById("notesToggle"),
+  showAllBtn:       document.getElementById("showAllBtn"),
+  filtersRow:       document.getElementById("filtersRow"),
+  filterDefaultBtn: document.getElementById("filterDefaultBtn"),
+  filterWeaponBtn:  document.getElementById("filterWeaponBtn"),
+  filterModsBtn:    document.getElementById("filterModsBtn"),
+  filterBlueprintBtn:document.getElementById("filterBlueprintBtn"),
+  filterKeyBtn:     document.getElementById("filterKeyBtn"),
+  filterQuestBtn:   document.getElementById("filterQuestBtn"),
+  filterMiscBtn:    document.getElementById("filterMiscBtn")
 };
 
 /**
@@ -427,6 +462,21 @@ function isColVisible(canonical) {
 }
 
 /**
+ * Consider a value "meaningful" if:
+ *  - it is not null/undefined
+ *  - trimmed string is not empty
+ *  - trimmed string is not exactly "0"
+ * This drives which lines appear in FULL INFO.
+ */
+function hasMeaningfulValue(val) {
+  if (val == null) return false;
+  const s = String(val).trim();
+  if (!s) return false;
+  if (s === "0") return false;
+  return true;
+}
+
+/**
  * Is this item's item_type one of the hidden categories (weapon, mod, etc)?
  */
 function isHiddenType(item) {
@@ -460,7 +510,7 @@ async function init() {
     }
 
     state.dataLoaded = true;
-    dom.result.textContent = "Type an item name above to search, or click “Show All (High → Low)”.";
+    dom.result.textContent = ""; // no default hint text
   } catch (err) {
     console.error(err);
     dom.result.innerHTML =
@@ -570,7 +620,7 @@ function parseItemsMasterCsv(csvText) {
     const description  = getField(fields, "description").trim();
     const ammoType     = getField(fields, "ammotype").trim();
     const icon         = getField(fields, "icon").trim();
-    const flavorText   = getField(fields, "flavortext").trim(); // canonical flavor_text -> flavortext
+    const flavorText   = getField(fields, "flavortext").trim();
 
     const enabled =
       enabledRaw === "" ||
@@ -691,7 +741,7 @@ function runSearch(queryRaw) {
   }
 
   if (!qNorm) {
-    dom.result.textContent = "Type an item name above to search, or click “Show All (High → Low)”.";
+    dom.result.textContent = ""; // no hint text
     return;
   }
 
@@ -723,7 +773,8 @@ function runSearch(queryRaw) {
 /**
  * "Show All" view – with modes:
  *  - "default": show all enabled items EXCEPT the hidden types
- *  - "hidden": show ONLY items whose type is in the hidden list
+ *  - "weapon"/"modifications"/"blueprint"/"key"/"quest item"/"misc":
+ *    show ONLY that category
  */
 function showAllItemsByValue(mode) {
   if (!state.dataLoaded) {
@@ -733,11 +784,12 @@ function showAllItemsByValue(mode) {
 
   let items = [...state.items];
 
-  if (mode === "hidden") {
-    items = items.filter(it => isHiddenType(it));
-  } else {
-    // default mode: hide the listed categories
+  if (mode === "default") {
+    // Default = everything except hidden categories
     items = items.filter(it => !isHiddenType(it));
+  } else if (mode && mode !== "default") {
+    const targetType = mode;
+    items = items.filter(it => normalizeName(it.itemType) === targetType);
   }
 
   items.sort((a, b) => (b.valueNum || 0) - (a.valueNum || 0));
@@ -809,7 +861,7 @@ function renderItemBlock(item) {
 
   html += "</div>";
 
-  // Notes at top, red (always shown in compact view)
+  // Notes at top, red (compact view)
   if (item.notes) {
     html += '<div class="line" style="color:#ff6666;"><strong>Notes:</strong> ' +
             escapeHtml(item.notes) + "</div>";
@@ -913,7 +965,8 @@ function findRecyclersForItem(targetName) {
 }
 
 /**
- * FULL ITEM LOOKUP (uses all columns, controlled by CONFIG row)
+ * FULL ITEM LOOKUP (uses all columns, controlled by CONFIG row,
+ * and hides any lines whose value is empty or "0")
  */
 
 function fullItemLookupByName(name) {
@@ -972,86 +1025,89 @@ function renderFullItemDetailsFromMaster(item) {
   }
   html += "</div>";
 
-  // Notes at top, red (honor column visibility if "notes" is disabled)
-  if (isColVisible("notes") && item.notes) {
+  // Notes at top, red (honor column visibility + hide if blank/"0")
+  if (isColVisible("notes") && hasMeaningfulValue(item.notes)) {
     html += '<div class="line-small" style="color:#ff6666;"><strong>Notes:</strong> ' +
             escapeHtml(item.notes) + "</div>";
   }
 
-  // Core meta lines, respecting column visibility
-  if (isColVisible("apiid") && item.apiId) {
+  // Core meta lines, respecting column visibility and meaningful value (not empty/"0")
+  if (isColVisible("apiid") && hasMeaningfulValue(item.apiId)) {
     html += '<div class="line-small"><strong>API ID:</strong> ' +
-            escapeHtml(String(item.apiId)) + "</div>";
+            escapeHtml(String(item.apiId).trim()) + "</div>";
   }
-  if (isColVisible("rarity") && item.rarity) {
+  if (isColVisible("rarity") && hasMeaningfulValue(item.rarity)) {
     html += '<div class="line-small"><strong>Rarity:</strong> ' +
             escapeHtml(item.rarity) + "</div>";
   }
 
   // Item category (Type): hide if blank or "0"
-  const hasCategory = item.itemType && item.itemType.trim() !== "" && item.itemType.trim() !== "0";
-  if (isColVisible("itemtype") && hasCategory) {
+  if (isColVisible("itemtype") && hasMeaningfulValue(item.itemType)) {
     html += '<div class="line-small"><strong>Type:</strong> ' +
             escapeHtml(item.itemType) + "</div>";
   }
 
-  if (isColVisible("workbench") && item.workbench) {
+  if (isColVisible("workbench") && hasMeaningfulValue(item.workbench)) {
     html += '<div class="line-small"><strong>Workbench:</strong> ' +
             escapeHtml(item.workbench) + "</div>";
   }
-  if (isColVisible("lootarea") && item.lootArea) {
+  if (isColVisible("lootarea") && hasMeaningfulValue(item.lootArea)) {
     html += '<div class="line-small"><strong>Loot Area:</strong> ' +
             escapeHtml(item.lootArea) + "</div>";
   }
-  if (isColVisible("subcategory") && item.subcategory) {
+  if (isColVisible("subcategory") && hasMeaningfulValue(item.subcategory)) {
     html += '<div class="line-small"><strong>Subcategory:</strong> ' +
             escapeHtml(item.subcategory) + "</div>";
   }
-  if (isColVisible("loadoutslots") && item.loadoutSlots) {
+  if (isColVisible("loadoutslots") && hasMeaningfulValue(item.loadoutSlots)) {
     html += '<div class="line-small"><strong>Loadout Slots:</strong> ' +
             escapeHtml(item.loadoutSlots) + "</div>";
   }
-  if (isColVisible("ammotype") && item.ammoType) {
+  if (isColVisible("ammotype") && hasMeaningfulValue(item.ammoType)) {
     html += '<div class="line-small"><strong>Ammo Type:</strong> ' +
             escapeHtml(item.ammoType) + "</div>";
   }
-  if (isColVisible("description") && item.description) {
+  if (isColVisible("description") && hasMeaningfulValue(item.description)) {
     html += '<div class="line-small"><strong>Description:</strong> ' +
             escapeHtml(item.description) + "</div>";
   }
-  if (isColVisible("flavortext") && item.flavorText) {
+  if (isColVisible("flavortext") && hasMeaningfulValue(item.flavorText)) {
     html += '<div class="line-small"><strong>Flavor Text:</strong> ' +
             escapeHtml(item.flavorText) + "</div>";
   }
-  if (isColVisible("icon") && item.icon) {
+  if (isColVisible("icon") && hasMeaningfulValue(item.icon)) {
     html += '<div class="line-small"><strong>Icon:</strong> ' +
             '<a href="' + escapeHtml(item.icon) +
             '" target="_blank" rel="noopener noreferrer">Open icon</a></div>';
   }
 
-  // Recycles / Salvage combined lines, honoring visibility
+  // Recycles / Salvage combined lines, honoring visibility + meaningful values
   const showRecycle =
     (isColVisible("recycle1") || isColVisible("recycle2")) &&
-    (item.recycle1 || item.recycle2);
+    (hasMeaningfulValue(item.recycle1) || hasMeaningfulValue(item.recycle2));
 
   if (showRecycle) {
     const recParts = [];
-    if (item.recycle1) recParts.push(item.recycle1);
-    if (item.recycle2) recParts.push(item.recycle2);
-    html += '<div class="line-small"><strong>Recycles To:</strong> ' +
-            recParts.map(escapeHtml).join(", ") + "</div>";
+    if (hasMeaningfulValue(item.recycle1)) recParts.push(item.recycle1);
+    if (hasMeaningfulValue(item.recycle2)) recParts.push(item.recycle2);
+    if (recParts.length) {
+      html += '<div class="line-small"><strong>Recycles To:</strong> ' +
+              recParts.map(escapeHtml).join(", ") + "</div>";
+    }
   }
 
   const showSalvage =
     (isColVisible("salvage1") || isColVisible("salvage2")) &&
-    (item.salvage1 || item.salvage2);
+    (hasMeaningfulValue(item.salvage1) || hasMeaningfulValue(item.salvage2));
 
   if (showSalvage) {
     const salvParts = [];
-    if (item.salvage1) salvParts.push(item.salvage1);
-    if (item.salvage2) salvParts.push(item.salvage2);
-    html += '<div class="line-small"><strong>Salvages To:</strong> ' +
-            salvParts.map(escapeHtml).join(", ") + "</div>";
+    if (hasMeaningfulValue(item.salvage1)) salvParts.push(item.salvage1);
+    if (hasMeaningfulValue(item.salvage2)) salvParts.push(item.salvage2);
+    if (salvParts.length) {
+      html += '<div class="line-small"><strong>Salvages To:</strong> ' +
+              salvParts.map(escapeHtml).join(", ") + "</div>";
+    }
   }
 
   const showQuests =
@@ -1102,11 +1158,11 @@ function renderFullItemDetailsFromMaster(item) {
     if (skipCanonicals.has(canon)) continue; // already handled above
 
     const val = row[i];
-    if (val == null || String(val).trim() === "") continue;
+    if (!hasMeaningfulValue(val)) continue;
 
     html += '<div class="line-small"><strong>' +
             escapeHtml(header) + ':</strong> ' +
-            escapeHtml(String(val)) + "</div>";
+            escapeHtml(String(val).trim()) + "</div>";
   }
 
   html += "</div>";
@@ -1122,7 +1178,7 @@ function attachEventHandlers() {
     const value = dom.search.value;
 
     if (!value.trim()) {
-      dom.result.textContent = "Type an item name above to search, or click “Show All (High → Low)”.";
+      dom.result.textContent = "";
       setTopButtonsVisible(true);
       setInstructionsVisible(false);
       return;
@@ -1141,7 +1197,7 @@ function attachEventHandlers() {
     if (dom.search.value) {
       dom.search.value = "";
     }
-    dom.result.textContent = "Type an item name above to search, or click “Show All (High → Low)”.";
+    dom.result.textContent = "";
     setTopButtonsVisible(true);
     setInstructionsVisible(false);
   });
@@ -1149,7 +1205,7 @@ function attachEventHandlers() {
   dom.clearSearch.addEventListener("click", () => {
     dom.search.value = "";
     dom.search.focus();
-    dom.result.textContent = "Type an item name above to search, or click “Show All (High → Low)”.";
+    dom.result.textContent = "";
     setTopButtonsVisible(true);
     setInstructionsVisible(false);
   });
@@ -1165,22 +1221,34 @@ function attachEventHandlers() {
     }
   });
 
-  // Show all (default: hide Weapons/Mods/BP/Key/Quest/Misc)
+  // Show all (default: hide Weapon/Mods/BP/Key/Quest/Misc,
+  // and reveal the under-search category filter buttons)
   dom.showAllBtn.addEventListener("click", () => {
     showAllItemsByValue("default");
-    dom.showDefaultBtn.classList.add("hidden");
+    dom.filtersRow.classList.remove("hidden");
   });
 
-  // Show ONLY Weapons/Mods/BP/Key/Quest/Misc
-  dom.showHiddenBtn.addEventListener("click", () => {
-    showAllItemsByValue("hidden");
-    dom.showDefaultBtn.classList.remove("hidden");
-  });
-
-  // Back to default filtered view (non-hidden types)
-  dom.showDefaultBtn.addEventListener("click", () => {
+  // Category filter buttons: each shows only that category at a time
+  dom.filterDefaultBtn.addEventListener("click", () => {
     showAllItemsByValue("default");
-    dom.showDefaultBtn.classList.add("hidden");
+  });
+  dom.filterWeaponBtn.addEventListener("click", () => {
+    showAllItemsByValue("weapon");
+  });
+  dom.filterModsBtn.addEventListener("click", () => {
+    showAllItemsByValue("modifications");
+  });
+  dom.filterBlueprintBtn.addEventListener("click", () => {
+    showAllItemsByValue("blueprint");
+  });
+  dom.filterKeyBtn.addEventListener("click", () => {
+    showAllItemsByValue("key");
+  });
+  dom.filterQuestBtn.addEventListener("click", () => {
+    showAllItemsByValue("quest item");
+  });
+  dom.filterMiscBtn.addEventListener("click", () => {
+    showAllItemsByValue("misc");
   });
 
   // Full Info button (event delegation)
