@@ -4,902 +4,957 @@
   <meta charset="utf-8">
   <title>ARC Lookup</title>
 
-  <!-- (Optional, when you want MetaForge tooltips)
+  <!-- MetaForge tooltips script (for item/quest hover tooltips) -->
   <script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
-  -->
 
   <style>
-    /* -------- Base layout -------- */
     body {
-      background: #000;
-      color: #fff;
-      font-family: Segoe UI, system-ui, -apple-system, sans-serif;
-      padding: 20px;
-      max-width: 900px;
-      margin: 0 auto;
+      background:#000;
+      color:#fff;
+      font-family:Segoe UI, sans-serif;
+      padding:20px;
+      max-width:900px;
+      margin:0 auto;
     }
 
-    /* -------- Top nav buttons (Maps, Sheet, Important Notes) -------- */
     .top-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 15px;
+      display:flex;
+      gap:10px;
+      margin-bottom:15px;
+      flex-wrap:wrap;
     }
-
     .top-buttons a,
     .top-buttons button {
-      background: #222;
-      color: #fff;
-      border: 1px solid #444;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 14px;
-      text-decoration: none;
-      cursor: pointer;
+      background:#222;
+      color:#fff;
+      border:1px solid #444;
+      border-radius:6px;
+      padding:6px 12px;
+      font-size:14px;
+      text-decoration:none;
+      cursor:pointer;
     }
-
     .top-buttons a:hover,
     .top-buttons button:hover {
-      background: #333;
+      background:#333;
     }
 
-    .hidden {
-      display: none !important;
-    }
-
-    /* -------- Search row (input + X button) -------- */
     .search-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:10px;
     }
 
     #search {
-      font-size: 22px;
-      padding: 12px;
-      flex: 1;
-      border-radius: 6px;
-      border: 1px solid #444;
-      background: #111;
-      color: #fff;
+      font-size:22px;
+      padding:12px;
+      flex:1;
     }
 
-    #search::placeholder {
-      color: #777;
+    #clear-search {
+      font-size:18px;
+      padding:10px 14px;
+      border-radius:6px;
+      border:1px solid #444;
+      background:#222;
+      color:#fff;
+      cursor:pointer;
+    }
+    #clear-search:hover {
+      background:#333;
     }
 
-    #clear-btn {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: 1px solid #444;
-      background: #222;
-      color: #fff;
-      font-size: 22px;
-      line-height: 1;
-      cursor: pointer;
+    .instructions {
+      background:#111;
+      border:1px solid #333;
+      border-radius:8px;
+      padding:10px 12px;
+      font-size:13px;
+      margin-bottom:12px;
+    }
+    .instructions-title {
+      font-weight:bold;
+      margin-bottom:4px;
+    }
+    .instructions-row {
+      margin:3px 0;
+    }
+    .pill {
+      display:inline-block;
+      padding:2px 6px;
+      border-radius:6px;
+      border:1px solid #444;
+      margin-left:4px;
+      font-size:12px;
     }
 
-    #clear-btn:hover {
-      background: #333;
+    /* Rarity color pills (match item title colors) */
+    .pill-common   { color:#ffffff; }
+    .pill-uncommon { color:#00ff00; }
+    .pill-rare     { color:#00bfff; }
+    .pill-epic     { color:#ff00ff; }
+    .pill-legendary{ color:#ffd700; }
+
+    /* Value color pills (match price color logic) */
+    .pill-price-1  { color:#ffffff; } /* <= 1000 */
+    .pill-price-2  { color:#00ff00; } /* 1001–2000 */
+    .pill-price-3  { color:#ff69b4; } /* 2001–5000 */
+    .pill-price-4  { color:#ffd700; } /* 5001+ */
+
+    .hidden {
+      display:none !important;
     }
 
-    /* -------- Legend / instructions -------- */
-    .legend {
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-      font-size: 14px;
-    }
-
-    .legend-title {
-      font-weight: bold;
-      font-size: 16px;
-      margin-bottom: 6px;
-    }
-
-    .legend-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 4px;
-    }
-
-    .legend-row strong {
-      margin-right: 4px;
-    }
-
-    .legend-chip {
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: #222;
-      font-size: 13px;
-    }
-
-    /* Rarity colors in legend */
-    .legend-rarity-uncommon { color: #00ff00; }  /* Uncommon */
-    .legend-rarity-rare     { color: #1e90ff; }  /* Rare */
-    .legend-rarity-epic     { color: #ff00ff; }  /* Epic */
-    .legend-rarity-legendary{ color: #ffd700; }  /* Legendary */
-
-    /* Price colors in legend (based on numeric value) */
-    .legend-price-low       { color: #ffffff; }  /* 0–1000 */
-    .legend-price-uncommon  { color: #00ff00; }  /* 1001–2000 */
-    .legend-price-mid       { color: #ff69b4; }  /* 2001–5000 */
-    .legend-price-high      { color: #ffd700; }  /* 5001+ */
-
-    /* -------- Important Notes panel -------- */
-    .notes-panel {
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-    }
-
-    .notes-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-weight: bold;
-    }
-
-    .notes-title {
-      font-size: 15px;
-    }
-
-    .notes-close-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 1px solid #444;
-      background: #222;
-      color: #fff;
-      font-size: 18px;
-      line-height: 1;
-      cursor: pointer;
-    }
-
-    .notes-close-btn:hover {
-      background: #333;
-    }
-
-    .notes-list {
-      margin: 0;
-      padding-left: 18px;
-      font-size: 14px;
-    }
-
-    .notes-list li {
-      margin: 2px 0;
-    }
-
-    /* -------- Item result styling -------- */
     .item-block {
-      margin-bottom: 10px;
+      margin:10px 0 14px 0;
     }
 
     .item-title {
-      font-size: 26px;
-      font-weight: bold;
-      margin-bottom: 4px;
+      font-size:26px;
+      font-weight:bold;
+      margin-bottom:4px;
     }
 
-    .item-price {
-      font-size: 20px;
-      margin-left: 4px;
+    .item-link {
+      text-decoration:none;
+    }
+
+    .item-value {
+      font-size:20px;
+      margin-left:6px;
     }
 
     .quest-tag {
-      color: #ffd700;
-      font-size: 18px;
-      margin-left: 10px;
+      font-size:16px;
+      margin-left:8px;
+      color:#ffd700;
     }
 
     .line {
-      margin: 4px 0;
-      font-size: 18px;
+      margin:4px 0;
+      font-size:18px;
+    }
+
+    .line-small {
+      font-size:14px;
+      color:#ccc;
     }
 
     .rarity-letter {
-      display: inline-block;
-      min-width: 1.1em;
-      text-align: center;
+      display:inline-block;
+      width:18px;
+      text-align:center;
+      margin-left:4px;
+      font-weight:bold;
     }
 
-    .recycle-tags {
-      margin-left: 8px;
-      font-size: 15px;
+    .notes-panel {
+      background:#111;
+      border:1px solid #333;
+      border-radius:8px;
+      padding:10px 12px;
+      margin-bottom:12px;
+      font-size:14px;
+    }
+
+    .notes-panel h2 {
+      margin-top:0;
+      font-size:18px;
+    }
+
+    .note-item {
+      margin:4px 0;
     }
 
     hr {
-      border: 1px solid #333;
-      margin: 10px 0;
+      border:1px solid #333;
+      margin:10px 0;
     }
 
-    /* Small footer for attribution */
-    .footer {
-      margin-top: 20px;
-      font-size: 12px;
-      color: #777;
+    .error {
+      color:#ff6666;
     }
 
-    .footer a {
-      color: #999;
+    footer {
+      margin-top:16px;
+      font-size:12px;
+      color:#888;
+    }
+    footer a {
+      color:#66b3ff;
     }
   </style>
 </head>
 <body>
-
-  <div class="top-buttons" id="top-buttons">
-    <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
+  <div class="top-buttons" id="topButtons">
+    <a href="https://mapgenie.io/arc-raiders" target="_blank" rel="noopener noreferrer">Maps</a>
     <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=732163012#gid=732163012"
-       target="_blank">Spreadsheet</a>
-    <button id="show-notes-btn" type="button">Important Notes</button>
-  </div>
-
-  <!-- Legend: only shown while there is an active search -->
-  <div id="legend" class="legend hidden">
-    <div class="legend-title">How to read the colors</div>
-
-    <div class="legend-row">
-      <strong>Item name (rarity):</strong>
-      <span class="legend-chip legend-rarity-uncommon">Uncommon</span>
-      <span class="legend-chip legend-rarity-rare">Rare</span>
-      <span class="legend-chip legend-rarity-epic">Epic</span>
-      <span class="legend-chip legend-rarity-legendary">Legendary</span>
-    </div>
-
-    <div class="legend-row">
-      <strong>Price color (sell value):</strong>
-      <span class="legend-chip legend-price-low">0–1000</span>
-      <span class="legend-chip legend-price-uncommon">1001–2000</span>
-      <span class="legend-chip legend-price-mid">2001–5000</span>
-      <span class="legend-chip legend-price-high">5001+</span>
-    </div>
-  </div>
-
-  <!-- Important Notes panel (from "Important Notes" tab, col A) -->
-  <div id="notes-panel" class="notes-panel hidden">
-    <div class="notes-header">
-      <span class="notes-title">Important Notes</span>
-      <button id="close-notes-btn" class="notes-close-btn" type="button" aria-label="Hide notes">×</button>
-    </div>
-    <div id="notes-body" class="notes-body">
-      <!-- Notes filled in by JS -->
-    </div>
+       target="_blank" rel="noopener noreferrer">Spreadsheet</a>
+    <button type="button" id="notesToggle">Important Notes</button>
   </div>
 
   <div class="search-row">
     <input id="search" placeholder="Type item name..." autofocus>
-    <button id="clear-btn" type="button" aria-label="Clear search">×</button>
+    <button id="clear-search" type="button" aria-label="Clear search">×</button>
+  </div>
+
+  <!-- Shown only when there is text in the search box -->
+  <div id="instructions" class="instructions hidden">
+    <div class="instructions-title">How to read the colors</div>
+    <div class="instructions-row">
+      Item name (rarity):
+      <span class="pill pill-common">Common</span>
+      <span class="pill pill-uncommon">Uncommon</span>
+      <span class="pill pill-rare">Rare</span>
+      <span class="pill pill-epic">Epic</span>
+      <span class="pill pill-legendary">Legendary</span>
+    </div>
+    <div class="instructions-row">
+      Sell value:
+      <span class="pill pill-price-1">≤ 1000</span>
+      <span class="pill pill-price-2">1001–2000</span>
+      <span class="pill pill-price-3">2001–5000</span>
+      <span class="pill pill-price-4">5001+</span>
+    </div>
+    <div class="instructions-row">
+      R / S tags:
+      <span class="pill">R-# = from recycling · S-# = from salvaging</span>
+    </div>
+  </div>
+
+  <!-- Important Notes (Google Sheet "Important Notes" tab) -->
+  <div id="notesPanel" class="notes-panel hidden">
+    <h2>Important Notes</h2>
+    <div id="notesContent">Loading…</div>
   </div>
 
   <div id="result"></div>
 
-  <div class="footer">
-    Data and item values from the in-game sheet. Meta data courtesy of
-    <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener noreferrer">MetaForge ARC Raiders</a>.
-  </div>
+  <footer>
+    Data from the
+    <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener noreferrer">MetaForge ARC Raiders</a>
+    API &amp; your Google Sheet.
+  </footer>
 
-  <script>
-    // -------------
-    // CONFIG
-    // -------------
+<script>
+"use strict";
 
-    // Main item CSV exported from your Google Sheet (first sheet)
-    const ITEMS_SHEET_URL =
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
+/**
+ * -----------------------------
+ *  CONFIGURATION
+ * -----------------------------
+ *
+ * ITEMS_API_URL / QUESTS_API_URL:
+ *   - Live data from MetaForge (items + quests).
+ * EXTRA_CSV_URL:
+ *   - Your existing sheet with columns:
+ *     name, rarity, recycle1, recycle2, sellPrice, category, keep1, keep2, keep3, notes
+ *   - We now use this ONLY for recycleX + notes (rarity/value come from API when available).
+ * NOTES_CSV_URL:
+ *   - A separate "Publish to web" CSV URL for the "Important Notes" tab.
+ *   - Column A: each row = one note (A1, A2, A3, ...).
+ */
+const ITEMS_API_URL = "https://metaforge.app/api/arc-raiders/items";
+const QUESTS_API_URL = "https://metaforge.app/api/arc-raiders/quests";
 
-    // "Important Notes" sheet - same published doc, but restricted to gid=732163012
-    // Column A only, one note per row.
-    const IMPORTANT_NOTES_SHEET_URL =
-      "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv";
+// Your original published CSV for item extras (recycles, notes, etc.)
+const EXTRA_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
 
-    // (Reserved for future MetaForge API integration)
-    const METAFORGE_API_BASE = "https://metaforge.app/api/arc-raiders";
+// TODO: Replace this with the CSV "Publish to web" link for the "Important Notes" tab.
+// Example format (once you publish that tab): 
+//   https://docs.google.com/spreadsheets/d/e/XXXXXX/pub?gid=YYYYY&single=true&output=csv
+const NOTES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv"; // <-- fill this in once you publish the Important Notes tab
 
-    // -------------
-    // STATE
-    // -------------
+/**
+ * -----------------------------
+ *  GLOBAL STATE
+ * -----------------------------
+ */
 
-    const state = {
-      // All items from the CSV (or later from MetaForge)
-      items: [],
-      // Quick lookup by lowercased name for future merges
-      itemsByName: new Map(),
-      // Important Notes (plain text rows from column A)
-      importantNotes: [],
-      itemsLoaded: false,
-      notesLoaded: false
+const state = {
+  items: [],                   // merged item objects (API + sheet overlay)
+  itemByName: new Map(),       // name (normalized) -> item
+  extrasByName: new Map(),     // name (normalized) -> extra row from sheet
+  itemIdToRequiredQuests: new Map(), // item_id -> [{ questName, questSlug, quantity }]
+  itemIdToRewardQuests: new Map(),   // item_id -> [{ questName, questSlug, quantity }]
+  importantNotes: [],          // array of strings from Important Notes tab
+  dataLoaded: false,
+  notesLoaded: false,
+  notesError: null
+};
+
+// Simple DOM cache
+const dom = {
+  search:       document.getElementById("search"),
+  clearSearch:  document.getElementById("clear-search"),
+  topButtons:   document.getElementById("topButtons"),
+  instructions: document.getElementById("instructions"),
+  result:       document.getElementById("result"),
+  notesPanel:   document.getElementById("notesPanel"),
+  notesContent: document.getElementById("notesContent"),
+  notesToggle:  document.getElementById("notesToggle")
+};
+
+/**
+ * -----------------------------
+ *  UTILITY HELPERS
+ * -----------------------------
+ */
+
+// Normalize item names for matching (case + whitespace).
+function normalizeName(str) {
+  return (str || "").trim().toLowerCase();
+}
+
+// Basic HTML escaping to avoid issues with special characters.
+function escapeHtml(str) {
+  return (str || "").replace(/[&<>"']/g, ch => {
+    switch (ch) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      default:  return ch;
+    }
+  });
+}
+
+// Parse a CSV line into fields. Handles quoted fields with commas.
+function csvSplit(row) {
+  const out = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (const ch of row) {
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (ch === "," && !inQuotes) {
+      out.push(field);
+      field = "";
+      continue;
+    }
+    field += ch;
+  }
+  out.push(field);
+  return out;
+}
+
+// Rarity color used for item title text and rarity letters.
+function rarityColor(rarity) {
+  const r = (rarity || "").toLowerCase();
+  if (r.includes("uncommon"))  return "#00ff00";
+  if (r.includes("rare"))      return "#00bfff";
+  if (r.includes("epic"))      return "#ff00ff";
+  if (r.includes("legendary")) return "#ffd700";
+  return "#ffffff"; // common / unknown
+}
+
+// Single-letter code and color for rarity badges on "Recycled From".
+function rarityLetterAndColor(rarity) {
+  const r = (rarity || "").toLowerCase();
+  if (r.includes("legendary")) return { letter: "L", color: "#ffd700" };
+  if (r.includes("epic"))      return { letter: "E", color: "#ff00ff" };
+  if (r.includes("rare"))      return { letter: "R", color: "#00bfff" };
+  if (r.includes("uncommon"))  return { letter: "U", color: "#00ff00" };
+  return { letter: "C", color: "#ffffff" }; // Common / default
+}
+
+// Value color based on coin range.
+//  <=1000: white
+// 1001–2000: green
+// 2001–5000: pink
+// 5001+: gold
+function priceColor(value) {
+  const n = Number(value) || 0;
+  if (n <= 1000)  return "#ffffff";
+  if (n <= 2000)  return "#00ff00";
+  if (n <= 5000)  return "#ff69b4";
+  return "#ffd700";
+}
+
+// Parse a recycle entry like "3 x Advanced Electrical Components"
+// into { qty, itemName }.
+// If parsing fails, qty will be null, itemName is the trimmed string.
+function parseRecycleEntry(entry) {
+  if (!entry) return null;
+  const trimmed = entry.trim();
+  if (!trimmed) return null;
+
+  const m = trimmed.match(/^\s*(\d+)\s*x?\s*(.+)$/i);
+  if (!m) {
+    return { qty: null, itemName: trimmed };
+  }
+  return {
+    qty: parseInt(m[1], 10),
+    itemName: m[2].trim()
+  };
+}
+
+/**
+ * -----------------------------
+ *  DATA LOADING
+ * -----------------------------
+ */
+
+// Load everything we need on startup: items + quests + extra CSV.
+// Important Notes are loaded lazily the first time the button is opened.
+async function init() {
+  dom.result.textContent = "Loading item data…";
+
+  attachEventHandlers();
+
+  try {
+    const [itemsJson, questsJson, extraCsv] = await Promise.all([
+      fetchJson(ITEMS_API_URL),
+      fetchJson(QUESTS_API_URL),
+      fetchTextSafe(EXTRA_CSV_URL)
+    ]);
+
+    if (extraCsv) {
+      parseExtraCsv(extraCsv);
+    }
+
+    buildItemsFromApi(itemsJson);
+    buildQuestIndex(questsJson);
+
+    state.dataLoaded = true;
+    dom.result.textContent = "Type an item name above to search.";
+  } catch (err) {
+    console.error(err);
+    dom.result.innerHTML =
+      '<div class="error">Error loading data from MetaForge or your sheet. Check console and URLs.</div>';
+  }
+}
+
+// Generic JSON fetch helper with basic error handling.
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error("Failed to fetch JSON: " + url + " (" + res.status + ")");
+  }
+  return res.json();
+}
+
+// Fetch text but return null instead of throwing on error.
+// Used for overlay CSV so the page still works if sheet is misconfigured.
+async function fetchTextSafe(url) {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return res.text();
+  } catch {
+    return null;
+  }
+}
+
+// Parse overlay CSV (your existing sheet).
+// Columns: 0 name, 1 rarity, 2 recycle1, 3 recycle2, 4 sellPrice, 5 category,
+//          6 keep1, 7 keep2, 8 keep3, 9 notes
+function parseExtraCsv(csvText) {
+  const rows = csvText.replace(/\r/g, "").split("\n");
+  rows.shift(); // drop header
+
+  for (const row of rows) {
+    if (!row.trim()) continue;
+    const fields = csvSplit(row);
+
+    const extra = {
+      name:      fields[0] || "",
+      rarity:    fields[1] || "",
+      recycle1:  fields[2] || "",
+      recycle2:  fields[3] || "",
+      sellPrice: fields[4] || "",
+      category:  fields[5] || "",
+      keep1:     fields[6] || "",
+      keep2:     fields[7] || "",
+      keep3:     fields[8] || "",
+      notes:     fields[9] || ""
     };
 
-    // -------------
-    // DOM ELEMENTS
-    // -------------
+    const key = normalizeName(extra.name);
+    if (!key) continue;
+    state.extrasByName.set(key, extra);
+  }
+}
 
-    const searchInput   = document.getElementById("search");
-    const resultEl      = document.getElementById("result");
-    const topButtonsEl  = document.getElementById("top-buttons");
-    const legendEl      = document.getElementById("legend");
-    const notesPanelEl  = document.getElementById("notes-panel");
-    const notesBodyEl   = document.getElementById("notes-body");
-    const showNotesBtn  = document.getElementById("show-notes-btn");
-    const clearBtn      = document.getElementById("clear-btn");
-    const closeNotesBtn = document.getElementById("close-notes-btn");
+// Build main item list from MetaForge API and merge with extras from sheet.
+function buildItemsFromApi(itemsJson) {
+  const apiItems = Array.isArray(itemsJson?.data) ? itemsJson.data : [];
 
-    let searchTimer = null;
+  const usedExtraKeys = new Set();
+  const mergedItems = [];
 
-    // -------------
-    // INITIAL LOAD
-    // -------------
+  // 1) Items that exist in the API (primary source of truth)
+  for (const it of apiItems) {
+    const key = normalizeName(it.name);
+    const extra = state.extrasByName.get(key);
 
-    // Load item data as soon as the script runs.
-    loadItemsFromSheet();
+    if (extra) {
+      usedExtraKeys.add(key);
+    }
 
-    // -------------
-    // EVENT HANDLERS
-    // -------------
+    const merged = {
+      // API core
+      id: it.id,
+      name: it.name,
+      rarity: it.rarity || extra?.rarity || "",
+      // MetaForge "value" is numeric. Fallback to sheet's sellPrice if missing.
+      value: typeof it.value === "number" ? it.value :
+             (extra ? parseInt(extra.sellPrice.replace(/[^0-9]/g, ""), 10) || 0 : 0),
+      itemType: it.item_type || extra?.category || "",
+      workbench: it.workbench || "",
+      flavorText: it.flavor_text || "",
+      lootArea: it.loot_area || "",
 
-    // When the search box gains focus, clear any previous search and restore the main view.
-    searchInput.addEventListener("focus", function () {
-      if (this.value !== "") {
-        clearSearchAndResetUI();
-      }
-    });
+      // Overlay from sheet (manual data you control)
+      recycle1: extra?.recycle1 || "",
+      recycle2: extra?.recycle2 || "",
+      extraNotes: extra?.notes || ""
+    };
 
-    // Debounced search when typing
-    searchInput.addEventListener("input", function () {
-      const query = this.value.trim();
+    mergedItems.push(merged);
+    state.itemByName.set(key, merged);
+  }
 
-      clearTimeout(searchTimer);
+  // 2) Any extra rows that don't exist in the API (custom items, placeholders, etc.)
+  for (const [key, extra] of state.extrasByName.entries()) {
+    if (usedExtraKeys.has(key)) continue; // already merged
 
-      if (!query) {
-        // Empty input: show main buttons, hide legend, and clear results
-        resultEl.innerHTML = "";
-        legendEl.classList.add("hidden");
-        topButtonsEl.classList.remove("hidden");
-        return;
-      }
+    const fallbackValue = parseInt(extra.sellPrice.replace(/[^0-9]/g, ""), 10) || 0;
+    const customItem = {
+      id: null,
+      name: extra.name || "(Unknown Item)",
+      rarity: extra.rarity || "",
+      value: fallbackValue,
+      itemType: extra.category || "",
+      workbench: "",
+      flavorText: "",
+      lootArea: "",
 
-      // Hide top buttons while searching
-      topButtonsEl.classList.add("hidden");
+      recycle1: extra.recycle1 || "",
+      recycle2: extra.recycle2 || "",
+      extraNotes: extra.notes || ""
+    };
 
-      searchTimer = setTimeout(() => {
-        if (!state.itemsLoaded) {
-          resultEl.innerHTML = "<div class='line'>Loading item data...</div>";
-          return;
-        }
-        runSearch(query);
-      }, 120);
-    });
+    mergedItems.push(customItem);
+    state.itemByName.set(key, customItem);
+  }
 
-    // Clear search and reset everything
-    clearBtn.addEventListener("click", function () {
-      clearSearchAndResetUI();
-      searchInput.focus();
-    });
+  state.items = mergedItems;
+}
 
-    // Show/hide Important Notes panel
-    showNotesBtn.addEventListener("click", function () {
-      if (notesPanelEl.classList.contains("hidden")) {
-        // If we haven't loaded notes yet, fetch them from the sheet first.
-        if (!state.notesLoaded) {
-          loadImportantNotes();
-        } else {
-          notesPanelEl.classList.remove("hidden");
-        }
-      } else {
-        notesPanelEl.classList.add("hidden");
-      }
-    });
+// Build quick lookup: item_id -> quests that require or reward that item.
+function buildQuestIndex(questsJson) {
+  const quests = Array.isArray(questsJson?.data) ? questsJson.data : [];
 
-    // Close button in the Important Notes panel
-    closeNotesBtn.addEventListener("click", function () {
-      notesPanelEl.classList.add("hidden");
-    });
+  const requiredMap = new Map();
+  const rewardMap   = new Map();
 
-    // -------------
-    // DATA LOADING
-    // -------------
+  for (const quest of quests) {
+    const questSlug = quest.id;   // used in /database/quest/<id>
+    const questName = quest.name;
 
-    /**
-     * Load item data from the main Google Sheet CSV.
-     * This keeps the current behavior: the sheet is the source of items.
-     * Later, you can replace this with a MetaForge API loader if desired.
-     */
-    function loadItemsFromSheet() {
-      fetch(ITEMS_SHEET_URL)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error("HTTP " + response.status);
-          }
-          return response.text();
-        })
-        .then(text => {
-          const rows = text.replace(/\r/g, "").split("\n");
-          if (!rows.length) {
-            throw new Error("Empty CSV");
-          }
+    // Required items for this quest
+    if (Array.isArray(quest.required_items)) {
+      for (const req of quest.required_items) {
+        const itemId = req.item_id;
+        const qty = Number(req.quantity) || null;
+        if (!itemId) continue;
 
-          // First row is header
-          rows.shift();
-
-          const items = [];
-
-          for (const row of rows) {
-            if (!row.trim()) continue;
-
-            const f = csvSplit(row);
-
-            const item = {
-              name:      (f[0] || "").trim(),
-              rarity:    (f[1] || "").trim(),
-              recycle1:  (f[2] || "").trim(),
-              recycle2:  (f[3] || "").trim(),
-              sellPrice: (f[4] || "").trim(),
-              category:  (f[5] || "").trim(),
-              keep1:     (f[6] || "").trim(),
-              keep2:     (f[7] || "").trim(),
-              keep3:     (f[8] || "").trim(),
-              notes:     (f[9] || "").trim()
-            };
-
-            if (!item.name) continue;
-
-            items.push(item);
-          }
-
-          state.items = items;
-          state.itemsByName.clear();
-          for (const item of items) {
-            state.itemsByName.set(item.name.toLowerCase(), item);
-          }
-          state.itemsLoaded = true;
-        })
-        .catch(err => {
-          console.error("Error loading items CSV:", err);
-          resultEl.innerHTML = "<div class='line'>Error loading item list from the spreadsheet.</div>";
+        const list = requiredMap.get(itemId) || [];
+        list.push({
+          questName,
+          questSlug,
+          quantity: qty
         });
+        requiredMap.set(itemId, list);
+      }
     }
 
-    /**
-     * Load Important Notes from the "Important Notes" tab.
-     * Uses only column A, one note per row.
-     */
-    function loadImportantNotes() {
-      notesBodyEl.innerHTML = "<div class='line'>Loading Important Notes...</div>";
-      notesPanelEl.classList.remove("hidden");
+    // Items rewarded by this quest
+    if (Array.isArray(quest.rewards)) {
+      for (const rw of quest.rewards) {
+        const itemId = rw.item_id;
+        const qty = Number(rw.quantity) || null;
+        if (!itemId) continue;
 
-      fetch(IMPORTANT_NOTES_SHEET_URL)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error("HTTP " + response.status);
-          }
-          return response.text();
-        })
-        .then(text => {
-          const rows = text.replace(/\r/g, "").split("\n");
-          const notes = [];
-
-          for (const row of rows) {
-            if (!row.trim()) continue;
-            const cols = csvSplit(row);
-            const note = (cols[0] || "").trim();
-            if (note) notes.push(note);
-          }
-
-          state.importantNotes = notes;
-          state.notesLoaded = true;
-          renderImportantNotes();
-        })
-        .catch(err => {
-          console.error("Error loading Important Notes:", err);
-          notesBodyEl.innerHTML =
-            "<div class='line'>Error loading Important Notes from the spreadsheet.</div>";
+        const list = rewardMap.get(itemId) || [];
+        list.push({
+          questName,
+          questSlug,
+          quantity: qty
         });
-    }
-
-    /**
-     * Render Important Notes list into the panel.
-     */
-    function renderImportantNotes() {
-      if (!state.importantNotes.length) {
-        notesBodyEl.innerHTML = "<div class='line'>No Important Notes found.</div>";
-        return;
+        rewardMap.set(itemId, list);
       }
+    }
+  }
 
-      const itemsHtml = state.importantNotes
-        .map(note => "<li>" + escapeHtml(note) + "</li>")
-        .join("");
+  state.itemIdToRequiredQuests = requiredMap;
+  state.itemIdToRewardQuests   = rewardMap;
+}
 
-      notesBodyEl.innerHTML = "<ul class='notes-list'>" + itemsHtml + "</ul>";
+/**
+ * -----------------------------
+ *  IMPORTANT NOTES LOADING
+ * -----------------------------
+ */
+
+// Load Important Notes the first time the panel is opened.
+async function ensureNotesLoaded() {
+  if (state.notesLoaded || state.notesError || !NOTES_CSV_URL) return;
+
+  try {
+    const text = await fetchTextSafe(NOTES_CSV_URL);
+    if (!text) {
+      state.notesError = "Error loading Important Notes from the spreadsheet.";
+      return;
     }
 
-    // -------------
-    // SEARCH + RENDERING
-    // -------------
+    const rows = text.replace(/\r/g, "").split("\n");
+    state.importantNotes = [];
 
-    /**
-     * Clear the search field, results, and restore the main view.
-     */
-    function clearSearchAndResetUI() {
-      searchInput.value = "";
-      clearTimeout(searchTimer);
-      resultEl.innerHTML = "";
-      legendEl.classList.add("hidden");
-      topButtonsEl.classList.remove("hidden");
-    }
-
-    /**
-     * Return an array of quest names from keep1/keep2/keep3.
-     */
-    function getQuestNames(item) {
-      const quests = [];
-      if (item.keep1) quests.push(item.keep1.trim());
-      if (item.keep2) quests.push(item.keep2.trim());
-      if (item.keep3) quests.push(item.keep3.trim());
-      return quests;
-    }
-
-    /**
-     * Main search: match by partial item name (case insensitive).
-     */
-    function runSearch(query) {
-      const q = query.toLowerCase();
-
-      const matches = state.items.filter(
-        item => item.name.toLowerCase().includes(q)
-      );
-
-      if (!matches.length) {
-        resultEl.innerHTML = "<div class='line'>No match</div>";
-        legendEl.classList.add("hidden");
-        return;
+    for (const row of rows) {
+      if (!row.trim()) continue;
+      const fields = csvSplit(row);
+      const note = (fields[0] || "").trim();
+      if (note) {
+        state.importantNotes.push(note);
       }
+    }
 
-      let html = "";
+    state.notesLoaded = true;
+  } catch (err) {
+    console.error(err);
+    state.notesError = "Error loading Important Notes from the spreadsheet.";
+  }
+}
 
-      for (const item of matches) {
-        html += renderItem(item);
+// Render the Important Notes panel from state.
+function renderNotesPanel() {
+  if (!NOTES_CSV_URL) {
+    dom.notesContent.innerHTML =
+      '<div class="error">NOTES_CSV_URL is not set yet. Publish your "Important Notes" tab and paste its CSV link into the script.</div>';
+    return;
+  }
+
+  if (state.notesError) {
+    dom.notesContent.innerHTML = '<div class="error">' + escapeHtml(state.notesError) + '</div>';
+    return;
+  }
+
+  if (!state.notesLoaded) {
+    dom.notesContent.textContent = "Loading…";
+    return;
+  }
+
+  if (!state.importantNotes.length) {
+    dom.notesContent.textContent = "No notes found.";
+    return;
+  }
+
+  const itemsHtml = state.importantNotes
+    .map(n => '<div class="note-item">• ' + escapeHtml(n) + '</div>')
+    .join("");
+  dom.notesContent.innerHTML = itemsHtml;
+}
+
+/**
+ * -----------------------------
+ *  SEARCH + RENDERING
+ * -----------------------------
+ */
+
+let searchDebounceTimer = null;
+
+// Main search entry point, called after debouncing.
+function runSearch(queryRaw) {
+  const query = queryRaw.trim();
+  const qNorm = normalizeName(query);
+
+  dom.result.innerHTML = "";
+
+  if (!state.dataLoaded) {
+    dom.result.textContent = "Still loading data…";
+    return;
+  }
+
+  if (!qNorm) {
+    dom.result.textContent = "Type an item name above to search.";
+    return;
+  }
+
+  // Simple substring match on item name.
+  const matches = state.items.filter(it =>
+    normalizeName(it.name).includes(qNorm)
+  );
+
+  if (!matches.length) {
+    dom.result.innerHTML = "<div>No match</div>";
+    return;
+  }
+
+  // Prioritize items where the name starts with the query.
+  matches.sort((a, b) => {
+    const aName = normalizeName(a.name);
+    const bName = normalizeName(b.name);
+    const aStarts = aName.startsWith(qNorm) ? 0 : 1;
+    const bStarts = bName.startsWith(qNorm) ? 0 : 1;
+    if (aStarts !== bStarts) return aStarts - bStarts;
+    return aName.localeCompare(bName);
+  });
+
+  let html = "";
+  for (const item of matches) {
+    html += renderItemBlock(item);
+  }
+  dom.result.innerHTML = html;
+}
+
+// Render a single item (title, quests, recycle info, notes).
+function renderItemBlock(item) {
+  const rarityClr = rarityColor(item.rarity);
+  const valueNum = Number(item.value) || 0;
+  const valueText = valueNum ? valueNum.toLocaleString("en-US") : "";
+  const valueClr = priceColor(valueNum);
+
+  const itemUrl = item.id
+    ? "https://metaforge.app/arc-raiders/database/item/" + encodeURIComponent(item.id)
+    : null;
+
+  const questUsage = getQuestUsageForItem(item.id);
+  const questTagHtml = renderQuestTagCompact(questUsage.required);
+
+  // Reverse recycle lookup: items that recycle *into* this item.
+  const recycledFrom = findRecyclersForItem(item.name);
+
+  let html = '<div class="item-block">';
+
+  // TITLE LINE
+  html += '<div class="item-title">';
+  if (itemUrl) {
+    html += '<a class="item-link" href="' + itemUrl +
+            '" target="_blank" rel="noopener noreferrer">' +
+            '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>" +
+            "</a>";
+  } else {
+    html += '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>";
+  }
+
+  if (valueText) {
+    html += '<span class="item-value" style="color:' + valueClr + ';"> — ' +
+            escapeHtml(valueText) + "</span>";
+  }
+
+  if (questTagHtml) {
+    html += " " + questTagHtml;
+  }
+
+  html += "</div>";
+
+  // Recycles To (sheet overlay)
+  const recToParts = [];
+  if (item.recycle1 && item.recycle1.trim()) recToParts.push(item.recycle1.trim());
+  if (item.recycle2 && item.recycle2.trim()) recToParts.push(item.recycle2.trim());
+
+  if (recToParts.length) {
+    html += '<div class="line">Recycles To: ' +
+            recToParts.map(escapeHtml).join(", ") + "</div>";
+  }
+
+  // Recycled From: each source item on its own line, with rarity letter + R-#.
+  if (recycledFrom.length) {
+    html += '<div class="line" style="color:#ffa500;">Recycled From:</div>';
+    for (const src of recycledFrom) {
+      const letterInfo = rarityLetterAndColor(src.rarity);
+      const srcValueNum = Number(src.value) || 0;
+      const srcValueText = srcValueNum ? srcValueNum.toLocaleString("en-US") : "";
+      const srcValueColor = priceColor(srcValueNum);
+      const srcQuestUsage = getQuestUsageForItem(src.id);
+      const srcQuestTagHtml = renderQuestTagCompact(srcQuestUsage.required);
+
+      html += '<div class="line">';
+      html += '<span style="color:#ffffff; font-weight:bold;">' +
+              escapeHtml(src.name) + "</span>";
+      html += '<span class="rarity-letter" style="color:' + letterInfo.color +
+              ';">' + letterInfo.letter + "</span>";
+      if (srcValueText) {
+        html += ' — <span style="color:' + srcValueColor +
+                '; font-weight:bold;">' + escapeHtml(srcValueText) + "</span>";
       }
-
-      resultEl.innerHTML = html;
-      legendEl.classList.remove("hidden");
-    }
-
-    /**
-     * Render a single item block (title, recycle chains, notes).
-     */
-    function renderItem(item) {
-      const nameColor = rarityColor(item.rarity);
-
-      const priceNumber = getNumericPrice(item.sellPrice);
-      const priceColor = priceColorFromValue(priceNumber);
-
-      const questNames = getQuestNames(item);
-      const questTag = questNames.length
-        ? "<span class='quest-tag'>[" + questNames.map(escapeHtml).join(", ") + "]</span>"
-        : "";
-
-      const recyclesToParts = [];
-      if (item.recycle1) recyclesToParts.push(item.recycle1);
-      if (item.recycle2) recyclesToParts.push(item.recycle2);
-
-      const recyclers = findRecyclersForItem(item.name);
-
-      let html = "";
-
-      // Title line: colored name and price
-      html += "<div class='item-block'>";
-      html += "<div class='item-title'>" +
-                "<span style='color:" + nameColor + ";'>" + escapeHtml(item.name) + "</span>" +
-                "<span class='item-price' style='color:" + priceColor + ";'> — " +
-                  escapeHtml(item.sellPrice) +
-                "</span>" +
-                questTag +
-              "</div>";
-
-      // "Recycles To" section
-      if (recyclesToParts.length) {
-        const list = recyclesToParts.map(escapeHtml).join(", ");
-        html += "<div class='line'>Recycles To: " + list + "</div>";
+      if (src.qty !== null) {
+        html += ' <span class="line-small">R-' + src.qty + "</span>";
       }
-
-      // "Recycled From" section with rarity letter and R-#
-      if (recyclers.length) {
-        html += "<div class='line' style='color:#ffa500;'>Recycled From:</div>";
-
-        for (const rec of recyclers) {
-          const src = rec.source;
-
-          const rarityClr = rarityColor(src.rarity);
-          const rarityLetter = getRarityLetter(src.rarity);
-
-          const srcPriceNumber = getNumericPrice(src.sellPrice);
-          const srcPriceColor = priceColorFromValue(srcPriceNumber);
-
-          const tags = [];
-          if (rec.recycleAmount > 0) {
-            tags.push("R-" + rec.recycleAmount);
-          }
-          if (rec.salvageAmount > 0) {
-            tags.push("S-" + rec.salvageAmount);
-          }
-          const amountTag = tags.length
-            ? "<span class='recycle-tags'>" + tags.join("  ") + "</span>"
-            : "";
-
-          const srcQuests = getQuestNames(src);
-          const srcQuestTag = srcQuests.length
-            ? "<span class='quest-tag'>[" + srcQuests.map(escapeHtml).join(", ") + "]</span>"
-            : "";
-
-          html += "<div class='line'>" +
-                    "<span style='color:#ffffff; font-weight:bold;'>" +
-                      escapeHtml(src.name) +
-                    "</span>";
-
-          if (rarityLetter) {
-            html += "<span class='rarity-letter' " +
-                    "style='color:" + rarityClr + "; font-weight:bold; margin-left:6px;'>" +
-                      rarityLetter +
-                    "</span>";
-          }
-
-          if (amountTag) {
-            html += " " + amountTag;
-          }
-
-          html += " — " +
-                    "<span style='color:" + srcPriceColor + "; font-weight:bold;'>" +
-                      escapeHtml(src.sellPrice) +
-                    "</span>" +
-                    srcQuestTag +
-                  "</div>";
-        }
+      if (srcQuestTagHtml) {
+        html += " " + srcQuestTagHtml;
       }
+      html += "</div>";
+    }
+  }
 
-      // Optional notes from the sheet
-      if (item.notes) {
-        html += "<div class='line'>Notes: " + escapeHtml(item.notes) + "</div>";
+  // Notes from sheet overlay
+  if (item.extraNotes) {
+    html += '<div class="line">Notes: ' + escapeHtml(item.extraNotes) + "</div>";
+  }
+
+  // Future expansion lines (crafting breakdown, salvage, profit, etc.) would slot here.
+
+  html += "<hr></div>";
+  return html;
+}
+
+// For a given item id, return quests that require it and quests that reward it.
+function getQuestUsageForItem(itemId) {
+  if (!itemId) {
+    return { required: [], reward: [] };
+  }
+  const required = state.itemIdToRequiredQuests.get(itemId) || [];
+  const reward   = state.itemIdToRewardQuests.get(itemId) || [];
+  return { required, reward };
+}
+
+// Render a compact quest tag, e.g. [Needed for: Building a Library (x3, x1…)]
+function renderQuestTagCompact(requiredList) {
+  if (!requiredList || !requiredList.length) return "";
+
+  const parts = requiredList.map(q => {
+    const qtyText = q.quantity ? " (x" + q.quantity + ")" : "";
+    const questUrl =
+      "https://metaforge.app/arc-raiders/database/quest/" + encodeURIComponent(q.questSlug);
+    return '<a href="' + questUrl +
+           '" target="_blank" rel="noopener noreferrer" class="quest-link">' +
+           escapeHtml(q.questName + qtyText) + "</a>";
+  });
+
+  return '<span class="quest-tag">[Needed for: ' + parts.join(", ") + "]</span>";
+}
+
+// Find items that recycle into the target item, based on sheet overlay.
+// Returns array of { id, name, rarity, value, qty }.
+function findRecyclersForItem(targetName) {
+  const targetKey = normalizeName(targetName);
+  const results = [];
+
+  for (const item of state.items) {
+    const candidate = { id: item.id, name: item.name, rarity: item.rarity, value: item.value };
+
+    const entries = [item.recycle1, item.recycle2];
+    let totalQty = 0;
+    let hasMatch = false;
+
+    for (const entry of entries) {
+      const parsed = parseRecycleEntry(entry);
+      if (!parsed) continue;
+      const entryKey = normalizeName(parsed.itemName);
+      if (!entryKey || entryKey !== targetKey) continue;
+
+      hasMatch = true;
+      if (parsed.qty) {
+        totalQty += parsed.qty;
       }
-
-      html += "<hr></div>";
-
-      return html;
     }
 
-    /**
-     * Find all items that recycle into the given target item.
-     * Uses recycle1/recycle2 text like "3 x Wires".
-     * Returns an array: { source, recycleAmount, salvageAmount }
-     * (salvageAmount is reserved for future API wiring and is 0 for now).
-     */
-    function findRecyclersForItem(targetName) {
-      const target = targetName.toLowerCase();
-      const result = [];
-
-      for (const src of state.items) {
-        let recycleAmount = 0;
-        let salvageAmount = 0; // Placeholder for future "salvages into" data
-
-        if (src.recycle1) {
-          const info1 = parseRecycleString(src.recycle1);
-          if (info1.name && info1.name.toLowerCase() === target) {
-            recycleAmount += info1.amount;
-          }
-        }
-
-        if (src.recycle2) {
-          const info2 = parseRecycleString(src.recycle2);
-          if (info2.name && info2.name.toLowerCase() === target) {
-            recycleAmount += info2.amount;
-          }
-        }
-
-        if (recycleAmount > 0 || salvageAmount > 0) {
-          result.push({ source: src, recycleAmount, salvageAmount });
-        }
-      }
-
-      return result;
-    }
-
-    // -------------
-    // HELPERS
-    // -------------
-
-    /**
-     * Split a single CSV row into fields, handling quoted fields with commas.
-     */
-    function csvSplit(row) {
-      const out = [];
-      let field = "";
-      let inQuotes = false;
-
-      for (const ch of row) {
-        if (ch === "\"") {
-          inQuotes = !inQuotes;
-          continue;
-        }
-        if (ch === "," && !inQuotes) {
-          out.push(field);
-          field = "";
-          continue;
-        }
-        field += ch;
-      }
-
-      out.push(field);
-      return out;
-    }
-
-    /**
-     * Strip "3 x " from "3 x Wires" and return just "Wires".
-     */
-    function extractItemNameFromRecycle(str) {
-      return str.replace(/^\s*\d+\s*x\s*/i, "").trim();
-    }
-
-    /**
-     * Extract numeric amount from "3 x Wires" (defaults to 1 if no number).
-     */
-    function extractAmountFromRecycle(str) {
-      const match = str.match(/^\s*(\d+)\s*x\s*/i);
-      if (!match) return 1;
-      const n = parseInt(match[1], 10);
-      return Number.isFinite(n) && n > 0 ? n : 1;
-    }
-
-    /**
-     * Parse a recycle string into { amount, name }.
-     */
-    function parseRecycleString(str) {
-      const trimmed = (str || "").trim();
-      if (!trimmed) return { amount: 0, name: "" };
-      return {
-        amount: extractAmountFromRecycle(trimmed),
-        name: extractItemNameFromRecycle(trimmed)
-      };
-    }
-
-    /**
-     * Convert a sellPrice string into a numeric value.
-     * Removes all non-digits, so "1,280" or "1280 Tokens" both work.
-     */
-    function getNumericPrice(priceStr) {
-      if (!priceStr) return 0;
-      const digits = priceStr.replace(/[^0-9]/g, "");
-      if (!digits) return 0;
-      return parseInt(digits, 10);
-    }
-
-    /**
-     * Map rarity text to a color.
-     */
-    function rarityColor(rarity) {
-      const r = (rarity || "").toLowerCase();
-      if (r.includes("uncommon"))  return "#00ff00";
-      if (r.includes("rare"))      return "#1e90ff";
-      if (r.includes("epic"))      return "#ff00ff";
-      if (r.includes("legendary")) return "#ffd700";
-      return "white";
-    }
-
-    /**
-     * Map rarity text to a 1-letter code for the "Recycled From" line.
-     */
-    function getRarityLetter(rarity) {
-      const r = (rarity || "").toLowerCase();
-      if (r.includes("uncommon"))  return "U";
-      if (r.includes("rare"))      return "R";
-      if (r.includes("epic"))      return "E";
-      if (r.includes("legendary")) return "L";
-      // For "common" or unknown, no letter to keep the UI clean.
-      return "";
-    }
-
-    /**
-     * Map numeric sell price to a color band:
-     * 0–1000: white
-     * 1001–2000: green
-     * 2001–5000: pink
-     * 5001+: gold
-     */
-    function priceColorFromValue(n) {
-      if (n >= 1001 && n <= 2000) return "#00ff00"; // "uncommon" price band
-      if (n >= 2001 && n <= 5000) return "#ff69b4";
-      if (n >= 5001)              return "#ffd700";
-      return "#ffffff";
-    }
-
-    /**
-     * Simple HTML escaping for any user/game text we render with innerHTML.
-     */
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"']/g, function (ch) {
-        switch (ch) {
-          case "&": return "&amp;";
-          case "<": return "&lt;";
-          case ">": return "&gt;";
-          case "\"": return "&quot;";
-          case "'": return "&#39;";
-          default: return ch;
-        }
+    if (hasMatch) {
+      results.push({
+        ...candidate,
+        qty: totalQty || null
       });
     }
+  }
 
-    // -------------
-    // METAForge API HOOK (for later)
-    // -------------
+  return results;
+}
 
-    /**
-     * Example of how you could swap the sheet for the MetaForge API:
-     *
-     * 1. Fetch items from METAFORGE_API_BASE + "/items?perPage=500"
-     * 2. Inspect the JSON structure in your browser DevTools.
-     * 3. Map each API item to the same shape used above in renderItem().
-     *
-     * Once you have the field names, you could:
-     *   - Replace loadItemsFromSheet() with this function, or
-     *   - Call both (API for core data, sheet for extra notes) and merge them.
-     *
-     * Keeping this here as a clearly documented hook, but not calling it yet
-     * so your current sheet-based version continues to work.
-     */
-    async function loadItemsFromMetaForgeExample() {
-      try {
-        const response = await fetch(METAFORGE_API_BASE + "/items?perPage=500");
-        if (!response.ok) {
-          throw new Error("HTTP " + response.status);
-        }
+/**
+ * -----------------------------
+ *  UI HANDLERS
+ * -----------------------------
+ */
 
-        const json = await response.json();
+function attachEventHandlers() {
+  // Typing in search: debounce + hide/show UI elements.
+  dom.search.addEventListener("input", () => {
+    const value = dom.search.value;
 
-        // Depending on the actual response shape, adjust these lines.
-        const apiItems = Array.isArray(json.data) ? json.data : json;
-
-        const items = apiItems.map(apiItem => {
-          // TODO: Replace property names below with the real ones
-          const name   = apiItem.name || "";
-          const rarity = apiItem.rarity || "";
-          const value  = apiItem.value != null ? String(apiItem.value) : "";
-
-          // You can also pull recycle/crafting info here once you see
-          // which fields MetaForge exposes for components / recycling.
-          return {
-            name:      name,
-            rarity:    rarity,
-            recycle1:  "",         // map from API when available
-            recycle2:  "",
-            sellPrice: value,
-            category:  apiItem.type || "",
-            keep1:     "",         // you can merge your sheet "keep" flags here
-            keep2:     "",
-            keep3:     "",
-            notes:     ""          // merge per-item notes from your own sheet by name
-          };
-        });
-
-        state.items = items;
-        state.itemsByName.clear();
-        for (const item of items) {
-          state.itemsByName.set(item.name.toLowerCase(), item);
-        }
-        state.itemsLoaded = true;
-      } catch (err) {
-        console.error("Error loading items from MetaForge API:", err);
-        resultEl.innerHTML =
-          "<div class='line'>Error loading items from MetaForge API. See console for details.</div>";
-      }
+    // If empty after typing, clear results and show top buttons again.
+    if (!value.trim()) {
+      dom.result.textContent = "Type an item name above to search.";
+      setTopButtonsVisible(true);
+      setInstructionsVisible(false);
+      return;
     }
-  </script>
+
+    setTopButtonsVisible(false);
+    setInstructionsVisible(true);
+
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      runSearch(value);
+    }, 120);
+  });
+
+  // On focus: clear text AND clear results + show top buttons again.
+  dom.search.addEventListener("focus", () => {
+    if (dom.search.value) {
+      dom.search.value = "";
+    }
+    dom.result.textContent = "Type an item name above to search.";
+    setTopButtonsVisible(true);
+    setInstructionsVisible(false);
+  });
+
+  // Clear button ("X") – mirrors the same behavior as clicking into the box but explicit.
+  dom.clearSearch.addEventListener("click", () => {
+    dom.search.value = "";
+    dom.search.focus();
+    dom.result.textContent = "Type an item name above to search.";
+    setTopButtonsVisible(true);
+    setInstructionsVisible(false);
+  });
+
+  // Important Notes toggle
+  dom.notesToggle.addEventListener("click", async () => {
+    const isHidden = dom.notesPanel.classList.contains("hidden");
+    if (isHidden) {
+      await ensureNotesLoaded();
+      renderNotesPanel();
+      dom.notesPanel.classList.remove("hidden");
+    } else {
+      dom.notesPanel.classList.add("hidden");
+    }
+  });
+}
+
+// Show / hide main top buttons (Maps, Spreadsheet, Important Notes).
+function setTopButtonsVisible(visible) {
+  if (visible) {
+    dom.topButtons.classList.remove("hidden");
+  } else {
+    dom.topButtons.classList.add("hidden");
+  }
+}
+
+// Show / hide the color instructions block.
+function setInstructionsVisible(visible) {
+  if (visible) {
+    dom.instructions.classList.remove("hidden");
+  } else {
+    dom.instructions.classList.add("hidden");
+  }
+}
+
+/**
+ * -----------------------------
+ *  BOOTSTRAP
+ * -----------------------------
+ */
+
+init();
+</script>
 </body>
 </html>
