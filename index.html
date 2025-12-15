@@ -137,6 +137,7 @@
     }
 
     .line-small {
+      margin:3px 0;
       font-size:14px;
       color:#ccc;
     }
@@ -185,6 +186,10 @@
     footer a {
       color:#66b3ff;
     }
+
+    details summary {
+      cursor:pointer;
+    }
   </style>
 </head>
 <body>
@@ -193,6 +198,7 @@
     <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=732163012#gid=732163012"
        target="_blank" rel="noopener noreferrer">Spreadsheet</a>
     <button type="button" id="notesToggle">Important Notes</button>
+    <button type="button" id="fullLookupBtn">Full Item Lookup</button>
   </div>
 
   <div class="search-row">
@@ -242,7 +248,7 @@
  *
  * items.json / quests.json should live in the same directory as this file.
  * EXTRA_CSV_URL is your existing "items" sheet (for recycle1/2 + notes).
- * NOTES_CSV_URL should be a published CSV for your "Important Notes" tab.
+ * NOTES_CSV_URL is the published CSV for your "Important Notes" tab.
  */
 const ITEMS_API_URL  = "./items.json";
 const QUESTS_API_URL = "./quests.json";
@@ -250,20 +256,24 @@ const QUESTS_API_URL = "./quests.json";
 const EXTRA_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
 
-// TODO: update once you publish the Important Notes tab as CSV
-const NOTES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv"; // e.g. "https://docs.google.com/...&single=true&output=csv"
+const NOTES_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv";
 
 /**
  * GLOBAL STATE
  */
 const state = {
   items: [],                         // merged item objects (API + sheet overlay)
-  itemByName: new Map(),             // normalized name -> item
+  itemByName: new Map(),             // normalized name -> merged item
   extrasByName: new Map(),           // normalized name -> extra row from sheet
-  itemIdToRequiredQuests: new Map(), // item id -> quest list
-  itemIdToRewardQuests: new Map(),   // item id -> quest list
+  apiItemsRaw: [],                   // raw API items from items.json
+  apiItemsByName: new Map(),         // normalized name -> raw API item
+
+  itemIdToRequiredQuests: new Map(),   // item id -> quest list
+  itemIdToRewardQuests: new Map(),     // item id -> quest list
   itemNameToRequiredQuests: new Map(), // normalized item name -> quest list
   itemNameToRewardQuests: new Map(),   // normalized item name -> quest list
+
   importantNotes: [],
   dataLoaded: false,
   notesLoaded: false,
@@ -272,14 +282,15 @@ const state = {
 
 // DOM cache
 const dom = {
-  search:       document.getElementById("search"),
-  clearSearch:  document.getElementById("clear-search"),
-  topButtons:   document.getElementById("topButtons"),
-  instructions: document.getElementById("instructions"),
-  result:       document.getElementById("result"),
-  notesPanel:   document.getElementById("notesPanel"),
-  notesContent: document.getElementById("notesContent"),
-  notesToggle:  document.getElementById("notesToggle")
+  search:        document.getElementById("search"),
+  clearSearch:   document.getElementById("clear-search"),
+  topButtons:    document.getElementById("topButtons"),
+  instructions:  document.getElementById("instructions"),
+  result:        document.getElementById("result"),
+  notesPanel:    document.getElementById("notesPanel"),
+  notesContent:  document.getElementById("notesContent"),
+  notesToggle:   document.getElementById("notesToggle"),
+  fullLookupBtn: document.getElementById("fullLookupBtn")
 };
 
 /**
@@ -441,21 +452,32 @@ function parseExtraCsv(csvText) {
   }
 }
 
+/**
+ * Build merged item list from API + sheet overlay,
+ * and also keep a separate map of raw API items for Full Item Lookup.
+ */
 function buildItemsFromApi(itemsJson) {
   const apiItems = Array.isArray(itemsJson?.data) ? itemsJson.data : [];
+
+  state.apiItemsRaw = apiItems;
+  state.apiItemsByName.clear();
 
   const usedExtraKeys = new Set();
   const mergedItems = [];
 
   for (const it of apiItems) {
     const key = normalizeName(it.name);
-    const extra = state.extrasByName.get(key);
+    if (key) {
+      state.apiItemsByName.set(key, it);
+    }
 
+    const extra = state.extrasByName.get(key);
     if (extra) {
       usedExtraKeys.add(key);
     }
 
     const merged = {
+      // API core fields we use in normal search
       id: it.id,
       name: it.name,
       rarity: it.rarity || extra?.rarity || "",
@@ -467,6 +489,7 @@ function buildItemsFromApi(itemsJson) {
       flavorText: it.flavor_text || "",
       lootArea: it.loot_area || "",
 
+      // Sheet overlay
       recycle1: extra?.recycle1 || "",
       recycle2: extra?.recycle2 || "",
       extraNotes: extra?.notes || ""
@@ -476,6 +499,7 @@ function buildItemsFromApi(itemsJson) {
     state.itemByName.set(key, merged);
   }
 
+  // Sheet-only items
   for (const [key, extra] of state.extrasByName.entries()) {
     if (usedExtraKeys.has(key)) continue;
 
@@ -502,7 +526,9 @@ function buildItemsFromApi(itemsJson) {
   state.items = mergedItems;
 }
 
-// Robust quest-index builder
+/**
+ * Robust quest-index builder
+ */
 function buildQuestIndex(questsJson) {
   let quests = [];
 
@@ -662,7 +688,7 @@ function renderNotesPanel() {
 }
 
 /**
- * SEARCH + RENDER
+ * SEARCH + RENDER (normal ARC lookup)
  */
 
 let searchDebounceTimer = null;
@@ -878,6 +904,147 @@ function findRecyclersForItem(targetName) {
 }
 
 /**
+ * FULL ITEM LOOKUP (using raw API items / API_Items mirror)
+ */
+
+function fullItemLookup(queryRaw) {
+  const query = (queryRaw || "").trim();
+  if (!query) {
+    dom.result.innerHTML =
+      '<div class="error">Enter an item name in the search box, then click "Full Item Lookup".</div>';
+    dom.search.focus();
+    return;
+  }
+
+  if (!state.dataLoaded) {
+    dom.result.textContent = "Still loading data…";
+    return;
+  }
+
+  const qNorm = normalizeName(query);
+
+  // 1) Exact name match first
+  let apiItem = state.apiItemsByName.get(qNorm);
+
+  // 2) If no exact match, look for partial matches
+  let partialMatches = [];
+  if (!apiItem) {
+    partialMatches = state.apiItemsRaw.filter(
+      it => normalizeName(it.name).includes(qNorm)
+    );
+    if (partialMatches.length === 1) {
+      apiItem = partialMatches[0];
+    }
+  }
+
+  if (!apiItem && partialMatches.length === 0) {
+    dom.result.innerHTML =
+      '<div>No API item found with that name in items.json / API_Items.</div>';
+    return;
+  }
+
+  if (!apiItem && partialMatches.length > 1) {
+    // Too many possible matches – show a short selectable list
+    let html = '<div>Multiple items matched. Refine your search or type one of these names exactly:</div><ul>';
+    partialMatches.slice(0, 20).forEach(it => {
+      html += "<li>" + escapeHtml(it.name) + "</li>";
+    });
+    if (partialMatches.length > 20) {
+      html += "<li>… (" + (partialMatches.length - 20) + " more)</li>";
+    }
+    html += "</ul>";
+    dom.result.innerHTML = html;
+    return;
+  }
+
+  dom.result.innerHTML = renderFullItemDetails(apiItem);
+  // In "full lookup" mode the instructions/top buttons are not required
+  setInstructionsVisible(false);
+}
+
+/**
+ * Render a full-detail view for a raw API item (mirrors API_Items content).
+ */
+function renderFullItemDetails(apiItem) {
+  const rarityClr = rarityColor(apiItem.rarity);
+  const valueNum = apiItem.value != null ? Number(apiItem.value) : NaN;
+  const valueText = !isNaN(valueNum) ? valueNum.toLocaleString("en-US") : "";
+  const valueClr = priceColor(valueNum);
+  const itemUrl = apiItem.id
+    ? "https://metaforge.app/arc-raiders/database/item/" + encodeURIComponent(apiItem.id)
+    : null;
+
+  const statBlock = apiItem.stat_block || {};
+  const statKeys = Object.keys(statBlock).sort();
+
+  let html = '<div class="item-block">';
+
+  // Title
+  html += '<div class="item-title">';
+  if (itemUrl) {
+    html += '<a class="item-link" href="' + itemUrl +
+            '" target="_blank" rel="noopener noreferrer">' +
+            '<span style="color:' + rarityClr + ';">' + escapeHtml(apiItem.name) + "</span>" +
+            "</a>";
+  } else {
+    html += '<span style="color:' + rarityClr + ';">' + escapeHtml(apiItem.name) + "</span>";
+  }
+  if (valueText) {
+    html += '<span class="item-value" style="color:' + valueClr + ';"> — ' +
+            escapeHtml(valueText) + "</span>";
+  }
+  html += "</div>";
+
+  // Core meta
+  html += '<div class="line-small">ID: ' + escapeHtml(String(apiItem.id || "")) + "</div>";
+  html += '<div class="line-small">Rarity: ' + escapeHtml(apiItem.rarity || "Unknown") + "</div>";
+  html += '<div class="line-small">Type: ' + escapeHtml(apiItem.item_type || "Unknown") + "</div>";
+  if (apiItem.workbench) {
+    html += '<div class="line-small">Workbench: ' + escapeHtml(apiItem.workbench) + "</div>";
+  }
+  if (apiItem.loot_area) {
+    html += '<div class="line-small">Loot Area: ' + escapeHtml(apiItem.loot_area) + "</div>";
+  }
+  if (apiItem.subcategory) {
+    html += '<div class="line-small">Subcategory: ' + escapeHtml(apiItem.subcategory) + "</div>";
+  }
+  if (apiItem.loadout_slots && apiItem.loadout_slots.length) {
+    html += '<div class="line-small">Loadout Slots: ' +
+            escapeHtml(apiItem.loadout_slots.join(", ")) + "</div>";
+  }
+
+  if (apiItem.description) {
+    html += '<div class="line-small"><strong>Description:</strong> ' +
+            escapeHtml(apiItem.description) + "</div>";
+  }
+  if (apiItem.flavor_text) {
+    html += '<div class="line-small"><strong>Flavor:</strong> ' +
+            escapeHtml(apiItem.flavor_text) + "</div>";
+  }
+
+  if (statKeys.length) {
+    html += '<div class="line"><strong>Stats</strong></div>';
+    statKeys.forEach(key => {
+      const val = statBlock[key];
+      if (val === null || val === undefined || val === "") return;
+      html += '<div class="line-small">' +
+              "<strong>" + escapeHtml(key) + ":</strong> " +
+              escapeHtml(String(val)) +
+              "</div>";
+    });
+  }
+
+  // Raw JSON (for debugging / full reference)
+  html += '<details class="line-small" style="margin-top:8px;">' +
+          "<summary>Raw API data (items.json / API_Items)</summary>" +
+          "<pre>" + escapeHtml(JSON.stringify(apiItem, null, 2)) + "</pre>" +
+          "</details>";
+
+  html += "</div>";
+  return html;
+}
+
+/**
  * UI HANDLERS
  */
 
@@ -927,6 +1094,10 @@ function attachEventHandlers() {
     } else {
       dom.notesPanel.classList.add("hidden");
     }
+  });
+
+  dom.fullLookupBtn.addEventListener("click", () => {
+    fullItemLookup(dom.search.value);
   });
 }
 
