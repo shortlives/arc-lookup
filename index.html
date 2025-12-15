@@ -17,11 +17,11 @@
       margin:0 auto;
     }
 
-    /* Load status indicator (top-left) */
+    /* Load status indicator (right above X button) */
     .status-indicator {
       font-size:12px;
       font-weight:bold;
-      margin-bottom:6px;
+      margin-bottom:4px;
     }
     .status-loading { color:#ff5555; }
     .status-loaded  { color:#33cc66; }
@@ -51,7 +51,7 @@
 
     .search-row {
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       gap:8px;
       margin-bottom:10px;
     }
@@ -60,6 +60,13 @@
       font-size:22px;
       padding:12px;
       flex:1;
+    }
+
+    .search-right {
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:4px;
     }
 
     #clear-search {
@@ -236,9 +243,6 @@
   </style>
 </head>
 <body>
-  <!-- Load status indicator -->
-  <div id="loadStatus" class="status-indicator status-loading">Loading…</div>
-
   <div class="top-buttons" id="topButtons">
     <a href="https://mapgenie.io/arc-raiders" target="_blank" rel="noopener noreferrer">Maps</a>
     <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit#gid=491619272"
@@ -249,14 +253,17 @@
 
   <div class="search-row">
     <input id="search" placeholder="Type item name..." autofocus>
-    <button id="clear-search" type="button" aria-label="Clear search">×</button>
+    <div class="search-right">
+      <div id="loadStatus" class="status-indicator status-loading">Loading…</div>
+      <button id="clear-search" type="button" aria-label="Clear search">×</button>
+    </div>
   </div>
 
   <!-- Category filter buttons under search; hidden until Show All is used -->
   <div class="filters-row hidden" id="filtersRow">
     <button type="button" id="filterDefaultBtn">Default</button>
     <button type="button" id="filterWeaponBtn">Weapon</button>
-    <button type="button" id="filterModsBtn">Modifications</button>
+    <button type="button" id="filterModsBtn">Modification</button>
     <button type="button" id="filterBlueprintBtn">Blueprint</button>
     <button type="button" id="filterKeyBtn">Key</button>
     <button type="button" id="filterQuestBtn">Quest Item</button>
@@ -311,15 +318,22 @@ const NOTES_CSV_URL =
 /**
  * Item types to hide by default in "Show All" view,
  * but exposed via category buttons.
+ * (Includes both singular and plural variants for robustness.)
  */
 const HIDDEN_ITEM_TYPES = new Set([
   "weapon",
+  "modification",
   "modifications",
   "blueprint",
   "key",
   "quest item",
   "misc"
 ]);
+
+/**
+ * Auto-reload flag key (to avoid infinite reload loop).
+ */
+const RELOAD_FLAG_KEY = "arcLookupReloadedOnce";
 
 /**
  * GLOBAL STATE
@@ -500,14 +514,31 @@ function isHiddenType(item) {
 /**
  * Load status indicator helper
  */
+let loadStatusHideTimer = null;
+
 function setLoadStatus(stateName, text) {
   if (!dom.loadStatus) return;
+
+  // Always clear previous hide timer
+  if (loadStatusHideTimer) {
+    clearTimeout(loadStatusHideTimer);
+    loadStatusHideTimer = null;
+  }
+
   dom.loadStatus.textContent = text;
   dom.loadStatus.classList.remove("status-loading","status-loaded","status-error");
+  dom.loadStatus.style.visibility = "visible";
+
   if (stateName === "loading") {
     dom.loadStatus.classList.add("status-loading");
   } else if (stateName === "loaded") {
     dom.loadStatus.classList.add("status-loaded");
+    // Auto-hide "Loaded" after 5 seconds
+    loadStatusHideTimer = setTimeout(() => {
+      dom.loadStatus.textContent = "";
+      dom.loadStatus.classList.remove("status-loaded");
+      dom.loadStatus.style.visibility = "hidden";
+    }, 5000);
   } else if (stateName === "error") {
     dom.loadStatus.classList.add("status-error");
   }
@@ -541,11 +572,29 @@ async function init() {
     state.dataLoaded = true;
     dom.result.textContent = "";
     setLoadStatus("loaded", "Loaded");
+
+    // Clear reload flag on successful load
+    try {
+      localStorage.removeItem(RELOAD_FLAG_KEY);
+    } catch (_) {}
   } catch (err) {
     console.error(err);
     dom.result.innerHTML =
       '<div class="error">Error loading data from Items_Master CSV. Check the published URL.</div>';
     setLoadStatus("error", "Error loading data");
+
+    // Auto-reload once (per browser) after a short delay
+    try {
+      const already = localStorage.getItem(RELOAD_FLAG_KEY);
+      if (!already) {
+        localStorage.setItem(RELOAD_FLAG_KEY, "1");
+        setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+      }
+    } catch (_) {
+      // If localStorage is blocked, just show the error and do nothing else.
+    }
   }
 }
 
@@ -797,7 +846,7 @@ function runSearch(queryRaw) {
 /**
  * "Show All" view – with modes:
  *  - "default": show all enabled items EXCEPT the hidden types
- *  - "weapon"/"modifications"/"blueprint"/"key"/"quest item"/"misc":
+ *  - "weapon"/"modification"/"blueprint"/"key"/"quest item"/"misc":
  *    show ONLY that category
  */
 function showAllItemsByValue(mode) {
@@ -1239,7 +1288,7 @@ function attachEventHandlers() {
     }
   });
 
-  // Show all (default: hide Weapon/Mods/BP/Key/Quest/Misc,
+  // Show all (default: hide Weapon/Mod/Blueprint/Key/Quest/Misc,
   // and reveal the under-search category filter buttons)
   dom.showAllBtn.addEventListener("click", () => {
     showAllItemsByValue("default");
@@ -1254,7 +1303,7 @@ function attachEventHandlers() {
     showAllItemsByValue("weapon");
   });
   dom.filterModsBtn.addEventListener("click", () => {
-    showAllItemsByValue("modifications");
+    showAllItemsByValue("modification");
   });
   dom.filterBlueprintBtn.addEventListener("click", () => {
     showAllItemsByValue("blueprint");
