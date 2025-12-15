@@ -191,10 +191,6 @@
       color:#66b3ff;
     }
 
-    details summary {
-      cursor:pointer;
-    }
-
     .full-item-btn {
       background:#222;
       color:#fff;
@@ -212,7 +208,7 @@
 <body>
   <div class="top-buttons" id="topButtons">
     <a href="https://mapgenie.io/arc-raiders" target="_blank" rel="noopener noreferrer">Maps</a>
-    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit#gid=0"
+    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit#gid=491619272"
        target="_blank" rel="noopener noreferrer">Spreadsheet</a>
     <button type="button" id="notesToggle">Important Notes</button>
   </div>
@@ -261,44 +257,44 @@
 /**
  * CONFIGURATION
  *
- * MASTER_CSV_URL should be the published CSV for your Items_Master tab.
- * NOTES_CSV_URL is the published CSV for the "Important Notes" tab.
- *
- * NOTE: Update MASTER_CSV_URL to the actual Items_Master CSV publish URL
- * (File → Share → Publish to web → select Items_Master → CSV).
+ * MASTER_CSV_URL: published CSV for Items_Master tab.
+ * NOTES_CSV_URL: published CSV for "Important Notes" tab.
  */
 const MASTER_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=491619272&single=true&output=csv"; // <- Items_Master CSV
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=491619272&single=true&output=csv";
 
 const NOTES_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv";
 
 /**
  * FULL ITEM LOOKUP CONFIG
- * Toggle any of these to false if you want to hide that line in the
- * Full Item Lookup view.
+ * Toggle any of these to false if you want to hide that line in
+ * the Full Item Lookup view.
  */
 const FULL_LOOKUP_CONFIG = {
-  showApiId:      true,
-  showRarity:     true,
-  showValue:      true,
-  showType:       true,
-  showWorkbench:  true,
-  showLootArea:   true,
-  showSubcategory:true,
-  showLoadout:    true,
-  showRecycles:   true,
-  showSalvage:    true,
-  showNotes:      true,
-  showQuests:     true
+  showApiId:       true,
+  showRarity:      true,
+  showValue:       true,
+  showType:        true,
+  showWorkbench:   true,
+  showLootArea:    true,
+  showSubcategory: true,
+  showLoadout:     true,
+  showAmmoType:    true,
+  showDescription: true,
+  showIcon:        true,
+  showRecycles:    true,
+  showSalvage:     true,
+  showNotes:       true,
+  showQuests:      true
 };
 
 /**
  * GLOBAL STATE
  */
 const state = {
-  items: [],            // array of item objects from Items_Master
-  itemByName: new Map(),// normalized name -> item
+  items: [],            // enabled items from Items_Master
+  itemByName: new Map(),// normalized name -> item (includes disabled for Full Info)
   importantNotes: [],
   dataLoaded: false,
   notesLoaded: false,
@@ -414,6 +410,15 @@ async function init() {
 
     parseItemsMasterCsv(masterCsv);
 
+    console.log("Parsed items from Items_Master (enabled):", state.items.length);
+
+    if (!state.items.length) {
+      dom.result.innerHTML =
+        '<div class="error">No enabled items parsed from Items_Master. ' +
+        'Check that the published CSV is the Items_Master tab and that the "name" column is filled.</div>';
+      return;
+    }
+
     state.dataLoaded = true;
     dom.result.textContent = "Type an item name above to search.";
   } catch (err) {
@@ -438,9 +443,9 @@ async function fetchTextSafe(url) {
  * Parse Items_Master CSV into state.items.
  *
  * Expected headers (case-insensitive):
- * api_id, name, rarity, value, item_type, workbench, loot_area,
- * subcategory, loadout_slots, recycle1, recycle2,
- * salvage1, salvage2, notes, enabled, quest1, quest2, quest3
+ * api_id, name, rarity, value, item_type, workbench, loot_area, subcategory,
+ * loadout_slots, recycle1, recycle2, salvage1, salvage2, notes, enabled,
+ * quest1, quest2, quest3, description, ammo_type, icon, loadout_slots
  */
 function parseItemsMasterCsv(csvText) {
   const rows = csvText.replace(/\r/g, "").split("\n");
@@ -450,7 +455,7 @@ function parseItemsMasterCsv(csvText) {
   const colIndex = {};
   headerFields.forEach((h, i) => {
     if (!h) return;
-    colIndex[h.toLowerCase()] = i;
+    colIndex[h.toLowerCase()] = i; // last duplicate wins (e.g. second loadout_slots)
   });
 
   function getField(fields, colName) {
@@ -477,7 +482,7 @@ function parseItemsMasterCsv(csvText) {
     const workbench    = getField(fields, "workbench").trim();
     const lootArea     = getField(fields, "loot_area").trim();
     const subcategory  = getField(fields, "subcategory").trim();
-    const loadoutSlots = getField(fields, "loadout_slots").trim();
+    const loadoutSlots = getField(fields, "loadout_slots").trim(); // last loadout_slots column
     const recycle1     = getField(fields, "recycle1").trim();
     const recycle2     = getField(fields, "recycle2").trim();
     const salvage1     = getField(fields, "salvage1").trim();
@@ -487,10 +492,13 @@ function parseItemsMasterCsv(csvText) {
     const quest1       = getField(fields, "quest1").trim();
     const quest2       = getField(fields, "quest2").trim();
     const quest3       = getField(fields, "quest3").trim();
+    const description  = getField(fields, "description").trim();
+    const ammoType     = getField(fields, "ammo_type").trim();
+    const icon         = getField(fields, "icon").trim();
 
     const value = valueStr ? Number(valueStr) || 0 : 0;
 
-    // Default enabled = TRUE if blank; treat explicit FALSE/0 as disabled
+    // Default enabled = TRUE if blank; treat explicit FALSE/0/no as disabled
     const enabled =
       enabledRaw === "" ||
       !["false", "0", "no"].includes(enabledRaw.toLowerCase());
@@ -513,18 +521,19 @@ function parseItemsMasterCsv(csvText) {
       salvage2,
       notes,
       enabled,
-      manualQuestNames
+      manualQuestNames,
+      description,
+      ammoType,
+      icon
     };
 
-    if (!enabled) {
-      // Skipped from main search results, but we still keep it mapped by name
-      // in case you want to use it later.
-      state.itemByName.set(normalizeName(name), item);
-      continue;
-    }
-
-    items.push(item);
+    // All items available for Full Info lookup
     state.itemByName.set(normalizeName(name), item);
+
+    // Only enabled items participate in search results
+    if (enabled) {
+      items.push(item);
+    }
   }
 
   state.items = items;
@@ -688,7 +697,7 @@ function renderItemBlock(item) {
             recToParts.map(escapeHtml).join(", ") + "</div>";
   }
 
-  // Recycled From: colored hyphen + item name + R tags + price
+  // Recycled From: colored hyphen + item name + R/S tags + price
   if (recycledFrom.length) {
     html += '<div class="line" style="color:#ffa500;">Recycled From: ' +
             '<span class="line-small">R = Recycled, S = Salvaged</span>' +
@@ -855,6 +864,20 @@ function renderFullItemDetailsFromMaster(item) {
   }
   if (FULL_LOOKUP_CONFIG.showLoadout && item.loadoutSlots) {
     html += '<div class="line-small">Loadout Slots: ' + escapeHtml(item.loadoutSlots) + "</div>";
+  }
+  if (FULL_LOOKUP_CONFIG.showAmmoType && item.ammoType) {
+    html += '<div class="line-small">Ammo Type: ' + escapeHtml(item.ammoType) + "</div>";
+  }
+
+  if (FULL_LOOKUP_CONFIG.showDescription && item.description) {
+    html += '<div class="line-small"><strong>Description:</strong> ' +
+            escapeHtml(item.description) + "</div>";
+  }
+
+  if (FULL_LOOKUP_CONFIG.showIcon && item.icon) {
+    html += '<div class="line-small"><strong>Icon:</strong> ' +
+            '<a href="' + escapeHtml(item.icon) +
+            '" target="_blank" rel="noopener noreferrer">Open icon</a></div>';
   }
 
   if (FULL_LOOKUP_CONFIG.showRecycles &&
