@@ -549,8 +549,6 @@ function setLoadStatus(stateName, text) {
 
 async function init() {
   attachEventHandlers();
-  setLoadStatus("loading", "Loading…");
-  dom.result.textContent = "Loading item data…";
   loadData(false);
 }
 
@@ -559,38 +557,38 @@ async function loadData(isRetry) {
     if (isRetry) {
       setLoadStatus("loading", "Retrying…");
       dom.result.textContent = "Retrying data load…";
+    } else {
+      setLoadStatus("loading", "Loading…");
+      dom.result.textContent = "Loading item data…";
     }
 
     const masterCsv = await fetchTextSafe(MASTER_CSV_URL);
     if (!masterCsv) {
-      throw new Error("Failed to load Items_Master CSV.");
+      throw new Error("Failed to load Items_Master CSV (empty response).");
     }
 
     parseItemsMasterCsv(masterCsv);
 
     if (!state.items.length) {
-      dom.result.innerHTML =
-        '<div class="error">No enabled items parsed from Items_Master. ' +
-        'Check that the published CSV is the Items_Master tab and that the "name" column is filled.</div>';
-      setLoadStatus("error", "Error loading data");
-      return;
+      // Treat "0 enabled items" as a load error so retry logic can kick in.
+      throw new Error("Parsed 0 enabled items from Items_Master.");
     }
 
     state.dataLoaded = true;
     dom.result.textContent = "";
     setLoadStatus("loaded", "Loaded");
   } catch (err) {
-    console.error(err);
+    console.error("loadData error:", err);
     dom.result.innerHTML =
-      '<div class="error">Error loading data from Items_Master CSV. Check the published URL.</div>';
+      '<div class="error">Error loading data from Items_Master CSV. Check the published URL or try again later.</div>';
     setLoadStatus("error", "Error loading data");
 
-    // Soft retry once after 3 seconds (no page reload)
+    // Soft retry once after 10 seconds (no page reload)
     if (!hasRetriedLoad) {
       hasRetriedLoad = true;
       setTimeout(() => {
         loadData(true);
-      }, 3000);
+      }, 10000);
     }
   }
 }
@@ -599,9 +597,13 @@ async function fetchTextSafe(url) {
   if (!url) return null;
   try {
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error("fetchTextSafe: non-OK HTTP", res.status, url);
+      return null;
+    }
     return res.text();
-  } catch {
+  } catch (e) {
+    console.error("fetchTextSafe: network error", e);
     return null;
   }
 }
@@ -617,6 +619,7 @@ function parseItemsMasterCsv(csvText) {
   if (!rows.length) return;
 
   const headerFields = csvSplit(rows[0]).map(h => h.trim());
+  console.log("Items_Master header row (raw):", headerFields);
 
   // Map canonical header -> FIRST index (so "value" resolves to the earliest value column)
   const colIndex = {};
@@ -628,6 +631,7 @@ function parseItemsMasterCsv(csvText) {
       colIndex[key] = i;
     }
   });
+  console.log("Items_Master header index (canonical):", colIndex);
 
   state.masterHeaders = headerFields;
   state.colIndex = colIndex;
@@ -735,6 +739,7 @@ function parseItemsMasterCsv(csvText) {
   }
 
   state.items = items;
+  console.log("Parsed items from Items_Master (enabled):", state.items.length);
 }
 
 /**
