@@ -212,7 +212,7 @@
 <body>
   <div class="top-buttons" id="topButtons">
     <a href="https://mapgenie.io/arc-raiders" target="_blank" rel="noopener noreferrer">Maps</a>
-    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=732163012#gid=732163012"
+    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit#gid=0"
        target="_blank" rel="noopener noreferrer">Spreadsheet</a>
     <button type="button" id="notesToggle">Important Notes</button>
   </div>
@@ -251,9 +251,8 @@
   <div id="result"></div>
 
   <footer>
-    Data from the
-    <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener noreferrer">MetaForge ARC Raiders</a>
-    API &amp; your Google Sheet.
+    Data sourced via your Google Sheet and
+    <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener noreferrer">MetaForge ARC Raiders</a>.
   </footer>
 
 <script>
@@ -262,15 +261,14 @@
 /**
  * CONFIGURATION
  *
- * items.json / quests.json should live in the same directory as this file.
- * EXTRA_CSV_URL is your existing "items" sheet (for recycle1/2 + notes).
- * NOTES_CSV_URL is the published CSV for your "Important Notes" tab.
+ * MASTER_CSV_URL should be the published CSV for your Items_Master tab.
+ * NOTES_CSV_URL is the published CSV for the "Important Notes" tab.
+ *
+ * NOTE: Update MASTER_CSV_URL to the actual Items_Master CSV publish URL
+ * (File → Share → Publish to web → select Items_Master → CSV).
  */
-const ITEMS_API_URL  = "./items.json";
-const QUESTS_API_URL = "./quests.json";
-
-const EXTRA_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
+const MASTER_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=491619272&single=true&output=csv"; // <- Items_Master CSV
 
 const NOTES_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv";
@@ -281,34 +279,26 @@ const NOTES_CSV_URL =
  * Full Item Lookup view.
  */
 const FULL_LOOKUP_CONFIG = {
-  showId:          true,
-  showRarity:      true,
-  showType:        true,
-  showWorkbench:   true,
-  showLootArea:    true,
-  showSubcategory: true,
-  showLoadout:     true,
-  showDescription: true,
-  showFlavor:      true,
-  showStats:       true,
-  showRawJson:     true
+  showApiId:      true,
+  showRarity:     true,
+  showValue:      true,
+  showType:       true,
+  showWorkbench:  true,
+  showLootArea:   true,
+  showSubcategory:true,
+  showLoadout:    true,
+  showRecycles:   true,
+  showSalvage:    true,
+  showNotes:      true,
+  showQuests:     true
 };
 
 /**
  * GLOBAL STATE
  */
 const state = {
-  items: [],                         // merged item objects (API + sheet overlay)
-  itemByName: new Map(),             // normalized name -> merged item
-  extrasByName: new Map(),           // normalized name -> extra row from sheet
-  apiItemsRaw: [],                   // raw API items from items.json
-  apiItemsByName: new Map(),         // normalized name -> raw API item
-
-  itemIdToRequiredQuests: new Map(),   // item id -> quest list
-  itemIdToRewardQuests: new Map(),     // item id -> quest list
-  itemNameToRequiredQuests: new Map(), // normalized item name -> quest list
-  itemNameToRewardQuests: new Map(),   // normalized item name -> quest list
-
+  items: [],            // array of item objects from Items_Master
+  itemByName: new Map(),// normalized name -> item
   importantNotes: [],
   dataLoaded: false,
   notesLoaded: false,
@@ -414,38 +404,23 @@ function parseRecycleEntry(entry) {
 
 async function init() {
   dom.result.textContent = "Loading item data…";
-
   attachEventHandlers();
 
   try {
-    const [itemsJson, questsJson, extraCsv] = await Promise.all([
-      fetchJson(ITEMS_API_URL),
-      fetchJson(QUESTS_API_URL),
-      fetchTextSafe(EXTRA_CSV_URL)
-    ]);
-
-    if (extraCsv) {
-      parseExtraCsv(extraCsv);
+    const masterCsv = await fetchTextSafe(MASTER_CSV_URL);
+    if (!masterCsv) {
+      throw new Error("Failed to load Items_Master CSV.");
     }
 
-    buildItemsFromApi(itemsJson);
-    buildQuestIndex(questsJson);
+    parseItemsMasterCsv(masterCsv);
 
     state.dataLoaded = true;
     dom.result.textContent = "Type an item name above to search.";
   } catch (err) {
     console.error(err);
     dom.result.innerHTML =
-      '<div class="error">Error loading data from items.json / quests.json or your sheet. Check the console and URLs.</div>';
+      '<div class="error">Error loading data from Items_Master CSV. Check the published URL.</div>';
   }
-}
-
-async function fetchJson(url) {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error("Failed to fetch JSON: " + url + " (" + res.status + ")");
-  }
-  return res.json();
 }
 
 async function fetchTextSafe(url) {
@@ -459,205 +434,100 @@ async function fetchTextSafe(url) {
   }
 }
 
-function parseExtraCsv(csvText) {
+/**
+ * Parse Items_Master CSV into state.items.
+ *
+ * Expected headers (case-insensitive):
+ * api_id, name, rarity, value, item_type, workbench, loot_area,
+ * subcategory, loadout_slots, recycle1, recycle2,
+ * salvage1, salvage2, notes, enabled, quest1, quest2, quest3
+ */
+function parseItemsMasterCsv(csvText) {
   const rows = csvText.replace(/\r/g, "").split("\n");
-  rows.shift(); // header
+  if (!rows.length) return;
 
-  for (const row of rows) {
+  const headerFields = csvSplit(rows[0]).map(h => h.trim());
+  const colIndex = {};
+  headerFields.forEach((h, i) => {
+    if (!h) return;
+    colIndex[h.toLowerCase()] = i;
+  });
+
+  function getField(fields, colName) {
+    const idx = colIndex[colName];
+    return idx == null ? "" : (fields[idx] || "");
+  }
+
+  const items = [];
+  state.itemByName.clear();
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
     if (!row.trim()) continue;
+
     const fields = csvSplit(row);
 
-    const extra = {
-      name:      fields[0] || "",
-      rarity:    fields[1] || "",
-      recycle1:  fields[2] || "",
-      recycle2:  fields[3] || "",
-      sellPrice: fields[4] || "",
-      category:  fields[5] || "",
-      keep1:     fields[6] || "",
-      keep2:     fields[7] || "",
-      keep3:     fields[8] || "",
-      notes:     fields[9] || ""
+    const name = getField(fields, "name").trim();
+    if (!name) continue;
+
+    const apiId        = getField(fields, "api_id").trim() || null;
+    const rarity       = getField(fields, "rarity").trim();
+    const valueStr     = getField(fields, "value").trim();
+    const itemType     = getField(fields, "item_type").trim();
+    const workbench    = getField(fields, "workbench").trim();
+    const lootArea     = getField(fields, "loot_area").trim();
+    const subcategory  = getField(fields, "subcategory").trim();
+    const loadoutSlots = getField(fields, "loadout_slots").trim();
+    const recycle1     = getField(fields, "recycle1").trim();
+    const recycle2     = getField(fields, "recycle2").trim();
+    const salvage1     = getField(fields, "salvage1").trim();
+    const salvage2     = getField(fields, "salvage2").trim();
+    const notes        = getField(fields, "notes").trim();
+    const enabledRaw   = getField(fields, "enabled").trim();
+    const quest1       = getField(fields, "quest1").trim();
+    const quest2       = getField(fields, "quest2").trim();
+    const quest3       = getField(fields, "quest3").trim();
+
+    const value = valueStr ? Number(valueStr) || 0 : 0;
+
+    // Default enabled = TRUE if blank; treat explicit FALSE/0 as disabled
+    const enabled =
+      enabledRaw === "" ||
+      !["false", "0", "no"].includes(enabledRaw.toLowerCase());
+
+    const manualQuestNames = [quest1, quest2, quest3].filter(q => q);
+
+    const item = {
+      apiId,
+      name,
+      rarity,
+      value,
+      itemType,
+      workbench,
+      lootArea,
+      subcategory,
+      loadoutSlots,
+      recycle1,
+      recycle2,
+      salvage1,
+      salvage2,
+      notes,
+      enabled,
+      manualQuestNames
     };
 
-    const key = normalizeName(extra.name);
-    if (!key) continue;
-    state.extrasByName.set(key, extra);
-  }
-}
-
-/**
- * Build merged item list from API + sheet overlay,
- * and also keep a separate map of raw API items for Full Item Lookup.
- */
-function buildItemsFromApi(itemsJson) {
-  const apiItems = Array.isArray(itemsJson?.data) ? itemsJson.data : [];
-
-  state.apiItemsRaw = apiItems;
-  state.apiItemsByName.clear();
-
-  const usedExtraKeys = new Set();
-  const mergedItems = [];
-
-  for (const it of apiItems) {
-    const key = normalizeName(it.name);
-    if (key) {
-      state.apiItemsByName.set(key, it);
+    if (!enabled) {
+      // Skipped from main search results, but we still keep it mapped by name
+      // in case you want to use it later.
+      state.itemByName.set(normalizeName(name), item);
+      continue;
     }
 
-    const extra = state.extrasByName.get(key);
-    if (extra) {
-      usedExtraKeys.add(key);
-    }
-
-    const merged = {
-      // API core fields we use in normal search
-      id: it.id,
-      name: it.name,
-      rarity: it.rarity || extra?.rarity || "",
-      value: typeof it.value === "number"
-        ? it.value
-        : (extra ? parseInt(extra.sellPrice.replace(/[^0-9]/g, ""), 10) || 0 : 0),
-      itemType: it.item_type || extra?.category || "",
-      workbench: it.workbench || "",
-      flavorText: it.flavor_text || "",
-      lootArea: it.loot_area || "",
-
-      // Sheet overlay
-      recycle1: extra?.recycle1 || "",
-      recycle2: extra?.recycle2 || "",
-      extraNotes: extra?.notes || ""
-    };
-
-    mergedItems.push(merged);
-    state.itemByName.set(key, merged);
+    items.push(item);
+    state.itemByName.set(normalizeName(name), item);
   }
 
-  // Sheet-only items
-  for (const [key, extra] of state.extrasByName.entries()) {
-    if (usedExtraKeys.has(key)) continue;
-
-    const fallbackValue = parseInt(extra.sellPrice.replace(/[^0-9]/g, ""), 10) || 0;
-    const customItem = {
-      id: null,
-      name: extra.name || "(Unknown Item)",
-      rarity: extra.rarity || "",
-      value: fallbackValue,
-      itemType: extra.category || "",
-      workbench: "",
-      flavorText: "",
-      lootArea: "",
-
-      recycle1: extra.recycle1 || "",
-      recycle2: extra.recycle2 || "",
-      extraNotes: extra.notes || ""
-    };
-
-    mergedItems.push(customItem);
-    state.itemByName.set(key, customItem);
-  }
-
-  state.items = mergedItems;
-}
-
-/**
- * Robust quest-index builder
- */
-function buildQuestIndex(questsJson) {
-  let quests = [];
-
-  if (Array.isArray(questsJson?.data)) {
-    quests = questsJson.data;
-  } else if (Array.isArray(questsJson)) {
-    quests = questsJson;
-  } else if (Array.isArray(questsJson?.results)) {
-    quests = questsJson.results;
-  }
-
-  if (!quests.length) {
-    console.warn("Quest JSON not in expected format or empty:", questsJson);
-    return;
-  }
-
-  console.log("Sample quest object from quests.json:", quests[0]);
-
-  const idReqMap   = new Map();
-  const idRewMap   = new Map();
-  const nameReqMap = new Map();
-  const nameRewMap = new Map();
-
-  function addToMap(map, key, value) {
-    if (!key) return;
-    const list = map.get(key) || [];
-    list.push(value);
-    map.set(key, list);
-  }
-
-  function processItemArray(arr, questName, questSlug, isReward) {
-    if (!Array.isArray(arr)) return;
-
-    for (const entry of arr) {
-      if (!entry) continue;
-
-      const itemObj = entry.item || entry.target || null;
-      const itemId =
-        entry.item_id ||
-        entry.itemId ||
-        (itemObj && (itemObj.id || itemObj.slug || itemObj.item_id)) ||
-        entry.id ||
-        null;
-
-      const itemName =
-        (itemObj && itemObj.name) ||
-        entry.name ||
-        null;
-
-      let qty = entry.quantity ?? entry.qty ?? entry.amount ?? null;
-      if (typeof qty === "string") {
-        const parsed = parseFloat(qty);
-        if (!isNaN(parsed)) qty = parsed;
-      }
-
-      const value = { questName, questSlug, quantity: qty };
-
-      if (isReward) {
-        if (itemId)   addToMap(idRewMap, itemId, value);
-        if (itemName) addToMap(nameRewMap, normalizeName(itemName), value);
-      } else {
-        if (itemId)   addToMap(idReqMap, itemId, value);
-        if (itemName) addToMap(nameReqMap, normalizeName(itemName), value);
-      }
-    }
-  }
-
-  for (const quest of quests) {
-    const questSlug = quest.id || quest.slug || slugifyName(quest.name || "");
-    const questName = quest.name || quest.title || questSlug;
-
-    const requiredArrays = [];
-    if (Array.isArray(quest.required_items)) requiredArrays.push(quest.required_items);
-    if (Array.isArray(quest.requiredItems))  requiredArrays.push(quest.requiredItems);
-    if (Array.isArray(quest.requirements))   requiredArrays.push(quest.requirements);
-
-    for (const arr of requiredArrays) {
-      processItemArray(arr, questName, questSlug, false);
-    }
-
-    const rewardArrays = [];
-    if (Array.isArray(quest.rewards))       rewardArrays.push(quest.rewards);
-    if (Array.isArray(quest.reward_items))  rewardArrays.push(quest.reward_items);
-
-    for (const arr of rewardArrays) {
-      processItemArray(arr, questName, questSlug, true);
-    }
-  }
-
-  state.itemIdToRequiredQuests   = idReqMap;
-  state.itemIdToRewardQuests     = idRewMap;
-  state.itemNameToRequiredQuests = nameReqMap;
-  state.itemNameToRewardQuests   = nameRewMap;
-
-  console.log("Quest index built. Items with requirements:", idReqMap.size || nameReqMap.size);
+  state.items = items;
 }
 
 /**
@@ -769,61 +639,56 @@ function renderItemBlock(item) {
   const valueText = valueNum ? valueNum.toLocaleString("en-US") : "";
   const valueClr = priceColor(valueNum);
 
-  const itemUrl = item.id
-    ? "https://metaforge.app/arc-raiders/database/item/" + encodeURIComponent(item.id)
+  const itemUrl = item.apiId
+    ? "https://metaforge.app/arc-raiders/database/item/" + encodeURIComponent(item.apiId)
     : null;
 
-  const questUsage = getQuestUsageForItem(item);
-  const questTagHtml = renderQuestTagCompact(questUsage.required);
-
   const recycledFrom = findRecyclersForItem(item.name);
-
-  const hasApiDetails = state.apiItemsByName.has(normalizeName(item.name));
+  const manualQuestTagHtml = renderManualQuestTags(item.manualQuestNames);
 
   let html = '<div class="item-block">';
 
-  // Title line (with optional "Full Info" button for this main item)
+  // Title line (with optional "Full Info" button)
   html += '<div class="item-title">';
   let titleInner = "";
 
   if (itemUrl) {
     titleInner += '<a class="item-link" href="' + itemUrl +
-            '" target="_blank" rel="noopener noreferrer">' +
-            '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>" +
-            "</a>";
+                  '" target="_blank" rel="noopener noreferrer">' +
+                  '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>" +
+                  "</a>";
   } else {
     titleInner += '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>";
   }
 
   if (valueText) {
     titleInner += '<span class="item-value" style="color:' + valueClr + ';"> — ' +
-            escapeHtml(valueText) + "</span>";
+                  escapeHtml(valueText) + "</span>";
   }
 
-  if (questTagHtml) {
-    titleInner += " " + questTagHtml;
+  if (manualQuestTagHtml) {
+    titleInner += " " + manualQuestTagHtml;
   }
 
   html += titleInner;
 
-  if (hasApiDetails) {
-    html += '<button type="button" class="full-item-btn" data-item-name="' +
-            escapeHtml(item.name) + '">Full Info</button>';
-  }
+  // Full Info button for this main item
+  html += '<button type="button" class="full-item-btn" data-item-name="' +
+          escapeHtml(item.name) + '">Full Info</button>';
 
   html += "</div>";
 
   // Recycles To (sheet overlay)
   const recToParts = [];
-  if (item.recycle1 && item.recycle1.trim()) recToParts.push(item.recycle1.trim());
-  if (item.recycle2 && item.recycle2.trim()) recToParts.push(item.recycle2.trim());
+  if (item.recycle1) recToParts.push(item.recycle1);
+  if (item.recycle2) recToParts.push(item.recycle2);
 
   if (recToParts.length) {
     html += '<div class="line">Recycles To: ' +
             recToParts.map(escapeHtml).join(", ") + "</div>";
   }
 
-  // Recycled From: colored hyphen + item name + R/S tags + price + (optional) quest tag
+  // Recycled From: colored hyphen + item name + R tags + price
   if (recycledFrom.length) {
     html += '<div class="line" style="color:#ffa500;">Recycled From: ' +
             '<span class="line-small">R = Recycled, S = Salvaged</span>' +
@@ -834,17 +699,17 @@ function renderItemBlock(item) {
       const srcValueNum = Number(src.value) || 0;
       const srcValueText = srcValueNum ? srcValueNum.toLocaleString("en-US") : "";
       const srcValueColor = priceColor(srcValueNum);
-      const srcQuestUsage = getQuestUsageForItem(src);
-      const srcQuestTagHtml = renderQuestTagCompact(srcQuestUsage.required);
+
+      const srcManualQuestTag = renderManualQuestTags(src.manualQuestNames);
 
       const rsParts = [];
       if (src.qty !== null) rsParts.push("R-" + src.qty);
       if (src.salvageQty != null) rsParts.push("S-" + src.salvageQty);
 
       html += '<div class="line">';
-      // colored hyphen prefix
+      // colored hyphen prefix (rarity color)
       html += '<span class="rarity-prefix" style="color:' + rarityClrSrc + ';">-</span>';
-      // item name
+      // item name (white)
       html += '<span style="color:#ffffff; font-weight:bold;">' +
               escapeHtml(src.name) + "</span>";
       // R/S tags (between name and value)
@@ -856,66 +721,37 @@ function renderItemBlock(item) {
         html += ' — <span style="color:' + srcValueColor +
                 '; font-weight:bold;">' + escapeHtml(srcValueText) + "</span>";
       }
-      // quest tag
-      if (srcQuestTagHtml) {
-        html += " " + srcQuestTagHtml;
+      // quest tag, if any
+      if (srcManualQuestTag) {
+        html += " " + srcManualQuestTag;
       }
       html += "</div>";
     }
   }
 
-  if (item.extraNotes) {
-    html += '<div class="line">Notes: ' + escapeHtml(item.extraNotes) + "</div>";
+  if (item.notes) {
+    html += '<div class="line">Notes: ' + escapeHtml(item.notes) + "</div>";
   }
 
   html += "<hr></div>";
   return html;
 }
 
-function getQuestUsageForItem(item) {
-  if (!item) return { required: [], reward: [] };
-
-  let required = [];
-  let reward = [];
-
-  if (item.id) {
-    required = state.itemIdToRequiredQuests.get(item.id) || [];
-    reward   = state.itemIdToRewardQuests.get(item.id) || [];
-  }
-
-  if (!required.length && !reward.length) {
-    const key = normalizeName(item.name);
-    if (key) {
-      required = state.itemNameToRequiredQuests.get(key) || required;
-      reward   = state.itemNameToRewardQuests.get(key) || reward;
-    }
-  }
-
-  return { required, reward };
-}
-
-function renderQuestTagCompact(requiredList) {
-  if (!requiredList || !requiredList.length) return "";
-
-  const parts = requiredList.map(q => {
-    const qtyText = q.quantity ? " (x" + q.quantity + ")" : "";
-    const questUrl =
-      "https://metaforge.app/arc-raiders/database/quest/" + encodeURIComponent(q.questSlug);
-    return '<a href="' + questUrl +
-           '" target="_blank" rel="noopener noreferrer" class="quest-link">' +
-           escapeHtml(q.questName + qtyText) + "</a>";
-  });
-
+function renderManualQuestTags(questNames) {
+  if (!questNames || !questNames.length) return "";
+  const parts = questNames.map(q => escapeHtml(q));
   return '<span class="quest-tag">[Needed for: ' + parts.join(", ") + "]</span>";
 }
 
+/**
+ * Find all items that recycle into the target item (Recycled From list),
+ * using recycle1 / recycle2 from Items_Master.
+ */
 function findRecyclersForItem(targetName) {
   const targetKey = normalizeName(targetName);
   const results = [];
 
   for (const item of state.items) {
-    const candidate = { id: item.id, name: item.name, rarity: item.rarity, value: item.value };
-
     const entries = [item.recycle1, item.recycle2];
     let totalQty = 0;
     let hasMatch = false;
@@ -927,15 +763,17 @@ function findRecyclersForItem(targetName) {
       if (!entryKey || entryKey !== targetKey) continue;
 
       hasMatch = true;
-      if (parsed.qty) {
-        totalQty += parsed.qty;
-      }
+      if (parsed.qty) totalQty += parsed.qty;
     }
 
     if (hasMatch) {
       results.push({
-        ...candidate,
-        qty: totalQty || null
+        name: item.name,
+        rarity: item.rarity,
+        value: item.value,
+        manualQuestNames: item.manualQuestNames,
+        qty: totalQty || null,
+        salvageQty: null // reserved for future salvage data
       });
     }
   }
@@ -945,7 +783,7 @@ function findRecyclersForItem(targetName) {
 
 /**
  * FULL ITEM LOOKUP – by item name (per-item button)
- * Uses the same data items.json → API_Items is built from.
+ * Uses the Items_Master row only.
  */
 function fullItemLookupByName(name) {
   if (!state.dataLoaded) {
@@ -954,34 +792,29 @@ function fullItemLookupByName(name) {
   }
 
   const key = normalizeName(name);
-  const apiItem = state.apiItemsByName.get(key);
+  const item = state.itemByName.get(key);
 
-  if (!apiItem) {
+  if (!item) {
     dom.result.innerHTML =
-      '<div class="error">No API details found for "' + escapeHtml(name) +
-      '" in items.json / API_Items.</div>';
+      '<div class="error">No item found in Items_Master for "' + escapeHtml(name) + '".</div>';
     return;
   }
 
-  dom.result.innerHTML = renderFullItemDetails(apiItem);
+  dom.result.innerHTML = renderFullItemDetailsFromMaster(item);
   setInstructionsVisible(false);
 }
 
 /**
- * Render a full-detail view for a raw API item (mirrors API_Items content).
- * Hides/shows sections based on FULL_LOOKUP_CONFIG.
+ * Render a full-detail view from Items_Master columns only.
  */
-function renderFullItemDetails(apiItem) {
-  const rarityClr = rarityColor(apiItem.rarity);
-  const valueNum = apiItem.value != null ? Number(apiItem.value) : NaN;
-  const valueText = !isNaN(valueNum) ? valueNum.toLocaleString("en-US") : "";
+function renderFullItemDetailsFromMaster(item) {
+  const rarityClr = rarityColor(item.rarity);
+  const valueNum = Number(item.value) || 0;
+  const valueText = valueNum ? valueNum.toLocaleString("en-US") : "";
   const valueClr = priceColor(valueNum);
-  const itemUrl = apiItem.id
-    ? "https://metaforge.app/arc-raiders/database/item/" + encodeURIComponent(apiItem.id)
+  const itemUrl = item.apiId
+    ? "https://metaforge.app/arc-raiders/database/item/" + encodeURIComponent(item.apiId)
     : null;
-
-  const statBlock = apiItem.stat_block || {};
-  const statKeys = Object.keys(statBlock).sort();
 
   let html = '<div class="item-block">';
 
@@ -990,68 +823,66 @@ function renderFullItemDetails(apiItem) {
   if (itemUrl) {
     html += '<a class="item-link" href="' + itemUrl +
             '" target="_blank" rel="noopener noreferrer">' +
-            '<span style="color:' + rarityClr + ';">' + escapeHtml(apiItem.name) + "</span>" +
+            '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>" +
             "</a>";
   } else {
-    html += '<span style="color:' + rarityClr + ';">' + escapeHtml(apiItem.name) + "</span>";
+    html += '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>";
   }
-  if (valueText) {
+  if (valueText && FULL_LOOKUP_CONFIG.showValue) {
     html += '<span class="item-value" style="color:' + valueClr + ';"> — ' +
             escapeHtml(valueText) + "</span>";
   }
   html += "</div>";
 
   // Core meta
-  if (FULL_LOOKUP_CONFIG.showId) {
-    html += '<div class="line-small">ID: ' + escapeHtml(String(apiItem.id || "")) + "</div>";
+  if (FULL_LOOKUP_CONFIG.showApiId && item.apiId) {
+    html += '<div class="line-small">API ID: ' + escapeHtml(String(item.apiId)) + "</div>";
   }
-  if (FULL_LOOKUP_CONFIG.showRarity) {
-    html += '<div class="line-small">Rarity: ' + escapeHtml(apiItem.rarity || "Unknown") + "</div>";
+  if (FULL_LOOKUP_CONFIG.showRarity && item.rarity) {
+    html += '<div class="line-small">Rarity: ' + escapeHtml(item.rarity) + "</div>";
   }
-  if (FULL_LOOKUP_CONFIG.showType) {
-    html += '<div class="line-small">Type: ' + escapeHtml(apiItem.item_type || "Unknown") + "</div>";
+  if (FULL_LOOKUP_CONFIG.showType && item.itemType) {
+    html += '<div class="line-small">Type: ' + escapeHtml(item.itemType) + "</div>";
   }
-  if (FULL_LOOKUP_CONFIG.showWorkbench && apiItem.workbench) {
-    html += '<div class="line-small">Workbench: ' + escapeHtml(apiItem.workbench) + "</div>";
+  if (FULL_LOOKUP_CONFIG.showWorkbench && item.workbench) {
+    html += '<div class="line-small">Workbench: ' + escapeHtml(item.workbench) + "</div>";
   }
-  if (FULL_LOOKUP_CONFIG.showLootArea && apiItem.loot_area) {
-    html += '<div class="line-small">Loot Area: ' + escapeHtml(apiItem.loot_area) + "</div>";
+  if (FULL_LOOKUP_CONFIG.showLootArea && item.lootArea) {
+    html += '<div class="line-small">Loot Area: ' + escapeHtml(item.lootArea) + "</div>";
   }
-  if (FULL_LOOKUP_CONFIG.showSubcategory && apiItem.subcategory) {
-    html += '<div class="line-small">Subcategory: ' + escapeHtml(apiItem.subcategory) + "</div>";
+  if (FULL_LOOKUP_CONFIG.showSubcategory && item.subcategory) {
+    html += '<div class="line-small">Subcategory: ' + escapeHtml(item.subcategory) + "</div>";
   }
-  if (FULL_LOOKUP_CONFIG.showLoadout &&
-      apiItem.loadout_slots && apiItem.loadout_slots.length) {
-    html += '<div class="line-small">Loadout Slots: ' +
-            escapeHtml(apiItem.loadout_slots.join(", ")) + "</div>";
+  if (FULL_LOOKUP_CONFIG.showLoadout && item.loadoutSlots) {
+    html += '<div class="line-small">Loadout Slots: ' + escapeHtml(item.loadoutSlots) + "</div>";
   }
 
-  if (FULL_LOOKUP_CONFIG.showDescription && apiItem.description) {
-    html += '<div class="line-small"><strong>Description:</strong> ' +
-            escapeHtml(apiItem.description) + "</div>";
-  }
-  if (FULL_LOOKUP_CONFIG.showFlavor && apiItem.flavor_text) {
-    html += '<div class="line-small"><strong>Flavor:</strong> ' +
-            escapeHtml(apiItem.flavor_text) + "</div>";
-  }
-
-  if (FULL_LOOKUP_CONFIG.showStats && statKeys.length) {
-    html += '<div class="line"><strong>Stats</strong></div>';
-    statKeys.forEach(key => {
-      const val = statBlock[key];
-      if (val === null || val === undefined || val === "") return;
-      html += '<div class="line-small">' +
-              "<strong>" + escapeHtml(key) + ":</strong> " +
-              escapeHtml(String(val)) +
-              "</div>";
-    });
+  if (FULL_LOOKUP_CONFIG.showRecycles &&
+      (item.recycle1 || item.recycle2)) {
+    const recParts = [];
+    if (item.recycle1) recParts.push(item.recycle1);
+    if (item.recycle2) recParts.push(item.recycle2);
+    html += '<div class="line-small"><strong>Recycles To:</strong> ' +
+            recParts.map(escapeHtml).join(", ") + "</div>";
   }
 
-  if (FULL_LOOKUP_CONFIG.showRawJson) {
-    html += '<details class="line-small" style="margin-top:8px;">' +
-            "<summary>Raw API data (items.json / API_Items)</summary>" +
-            "<pre>" + escapeHtml(JSON.stringify(apiItem, null, 2)) + "</pre>" +
-            "</details>";
+  if (FULL_LOOKUP_CONFIG.showSalvage &&
+      (item.salvage1 || item.salvage2)) {
+    const salvParts = [];
+    if (item.salvage1) salvParts.push(item.salvage1);
+    if (item.salvage2) salvParts.push(item.salvage2);
+    html += '<div class="line-small"><strong>Salvages To:</strong> ' +
+            salvParts.map(escapeHtml).join(", ") + "</div>";
+  }
+
+  if (FULL_LOOKUP_CONFIG.showNotes && item.notes) {
+    html += '<div class="line-small"><strong>Notes:</strong> ' +
+            escapeHtml(item.notes) + "</div>";
+  }
+
+  if (FULL_LOOKUP_CONFIG.showQuests && item.manualQuestNames.length) {
+    html += '<div class="line-small"><strong>Needed for:</strong> ' +
+            escapeHtml(item.manualQuestNames.join(", ")) + "</div>";
   }
 
   html += "</div>";
