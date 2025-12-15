@@ -256,9 +256,6 @@
 
 /**
  * CONFIGURATION
- *
- * MASTER_CSV_URL: published CSV for Items_Master tab.
- * NOTES_CSV_URL: published CSV for "Important Notes" tab.
  */
 const MASTER_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=491619272&single=true&output=csv";
@@ -268,8 +265,6 @@ const NOTES_CSV_URL =
 
 /**
  * FULL ITEM LOOKUP CONFIG
- * Toggle any of these to false if you want to hide that line in
- * the Full Item Lookup view.
  */
 const FULL_LOOKUP_CONFIG = {
   showApiId:       true,
@@ -293,8 +288,8 @@ const FULL_LOOKUP_CONFIG = {
  * GLOBAL STATE
  */
 const state = {
-  items: [],            // enabled items from Items_Master
-  itemByName: new Map(),// normalized name -> item (includes disabled for Full Info)
+  items: [],
+  itemByName: new Map(),
   importantNotes: [],
   dataLoaded: false,
   notesLoaded: false,
@@ -321,13 +316,6 @@ function normalizeName(str) {
   return (str || "").trim().toLowerCase();
 }
 
-function slugifyName(str) {
-  return (str || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function escapeHtml(str) {
   return (str || "").replace(/[&<>"']/g, ch => {
     switch (ch) {
@@ -339,6 +327,22 @@ function escapeHtml(str) {
       default:  return ch;
     }
   });
+}
+
+/**
+ * Canonicalize a header for robust matching:
+ *  - lowercase
+ *  - remove all non-alphanumeric characters
+ *
+ * Examples:
+ *  "api_id"      -> "apiid"
+ *  " Item Type " -> "itemtype"
+ *  "name﻿" (with BOM) -> "name"
+ */
+function canonicalKey(header) {
+  return (header || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
 function csvSplit(row) {
@@ -442,24 +446,47 @@ async function fetchTextSafe(url) {
 /**
  * Parse Items_Master CSV into state.items.
  *
- * Expected headers (case-insensitive):
- * api_id, name, rarity, value, item_type, workbench, loot_area, subcategory,
- * loadout_slots, recycle1, recycle2, salvage1, salvage2, notes, enabled,
- * quest1, quest2, quest3, description, ammo_type, icon, loadout_slots
+ * Expected logical columns (we match by canonical header names):
+ *  api_id       -> "apiid"
+ *  name         -> "name"
+ *  rarity       -> "rarity"
+ *  value        -> "value"
+ *  item_type    -> "itemtype"
+ *  workbench    -> "workbench"
+ *  loot_area    -> "lootarea"
+ *  subcategory  -> "subcategory"
+ *  loadout_slots-> "loadoutslots"
+ *  recycle1     -> "recycle1"
+ *  recycle2     -> "recycle2"
+ *  salvage1     -> "salvage1"
+ *  salvage2     -> "salvage2"
+ *  notes        -> "notes"
+ *  enabled      -> "enabled"
+ *  quest1       -> "quest1"
+ *  quest2       -> "quest2"
+ *  quest3       -> "quest3"
+ *  description  -> "description"
+ *  ammo_type    -> "ammotype"
+ *  icon         -> "icon"
  */
 function parseItemsMasterCsv(csvText) {
   const rows = csvText.replace(/\r/g, "").split("\n");
   if (!rows.length) return;
 
   const headerFields = csvSplit(rows[0]).map(h => h.trim());
+  console.log("Items_Master header row (raw):", headerFields);
+
   const colIndex = {};
   headerFields.forEach((h, i) => {
     if (!h) return;
-    colIndex[h.toLowerCase()] = i; // last duplicate wins (e.g. second loadout_slots)
+    const key = canonicalKey(h);
+    if (!key) return;
+    colIndex[key] = i; // last duplicate wins
   });
+  console.log("Items_Master header index (canonical):", colIndex);
 
-  function getField(fields, colName) {
-    const idx = colIndex[colName];
+  function getField(fields, logicalKey) {
+    const idx = colIndex[logicalKey];
     return idx == null ? "" : (fields[idx] || "");
   }
 
@@ -473,16 +500,16 @@ function parseItemsMasterCsv(csvText) {
     const fields = csvSplit(row);
 
     const name = getField(fields, "name").trim();
-    if (!name) continue;
+    if (!name) continue; // skip rows with no name
 
-    const apiId        = getField(fields, "api_id").trim() || null;
+    const apiId        = getField(fields, "apiid").trim() || null;
     const rarity       = getField(fields, "rarity").trim();
     const valueStr     = getField(fields, "value").trim();
-    const itemType     = getField(fields, "item_type").trim();
+    const itemType     = getField(fields, "itemtype").trim();
     const workbench    = getField(fields, "workbench").trim();
-    const lootArea     = getField(fields, "loot_area").trim();
+    const lootArea     = getField(fields, "lootarea").trim();
     const subcategory  = getField(fields, "subcategory").trim();
-    const loadoutSlots = getField(fields, "loadout_slots").trim(); // last loadout_slots column
+    const loadoutSlots = getField(fields, "loadoutslots").trim();
     const recycle1     = getField(fields, "recycle1").trim();
     const recycle2     = getField(fields, "recycle2").trim();
     const salvage1     = getField(fields, "salvage1").trim();
@@ -493,7 +520,7 @@ function parseItemsMasterCsv(csvText) {
     const quest2       = getField(fields, "quest2").trim();
     const quest3       = getField(fields, "quest3").trim();
     const description  = getField(fields, "description").trim();
-    const ammoType     = getField(fields, "ammo_type").trim();
+    const ammoType     = getField(fields, "ammotype").trim();
     const icon         = getField(fields, "icon").trim();
 
     const value = valueStr ? Number(valueStr) || 0 : 0;
@@ -596,7 +623,7 @@ function renderNotesPanel() {
 }
 
 /**
- * SEARCH + RENDER (normal ARC lookup)
+ * SEARCH + RENDER
  */
 
 let searchDebounceTimer = null;
@@ -657,7 +684,7 @@ function renderItemBlock(item) {
 
   let html = '<div class="item-block">';
 
-  // Title line (with optional "Full Info" button)
+  // Title line
   html += '<div class="item-title">';
   let titleInner = "";
 
@@ -681,13 +708,13 @@ function renderItemBlock(item) {
 
   html += titleInner;
 
-  // Full Info button for this main item
+  // Full Info button
   html += '<button type="button" class="full-item-btn" data-item-name="' +
           escapeHtml(item.name) + '">Full Info</button>';
 
   html += "</div>";
 
-  // Recycles To (sheet overlay)
+  // Recycles To
   const recToParts = [];
   if (item.recycle1) recToParts.push(item.recycle1);
   if (item.recycle2) recToParts.push(item.recycle2);
@@ -697,7 +724,7 @@ function renderItemBlock(item) {
             recToParts.map(escapeHtml).join(", ") + "</div>";
   }
 
-  // Recycled From: colored hyphen + item name + R/S tags + price
+  // Recycled From
   if (recycledFrom.length) {
     html += '<div class="line" style="color:#ffa500;">Recycled From: ' +
             '<span class="line-small">R = Recycled, S = Salvaged</span>' +
@@ -716,21 +743,16 @@ function renderItemBlock(item) {
       if (src.salvageQty != null) rsParts.push("S-" + src.salvageQty);
 
       html += '<div class="line">';
-      // colored hyphen prefix (rarity color)
       html += '<span class="rarity-prefix" style="color:' + rarityClrSrc + ';">-</span>';
-      // item name (white)
       html += '<span style="color:#ffffff; font-weight:bold;">' +
               escapeHtml(src.name) + "</span>";
-      // R/S tags (between name and value)
       if (rsParts.length) {
         html += ' <span class="line-small">' + rsParts.join(" · ") + "</span>";
       }
-      // value
       if (srcValueText) {
         html += ' — <span style="color:' + srcValueColor +
                 '; font-weight:bold;">' + escapeHtml(srcValueText) + "</span>";
       }
-      // quest tag, if any
       if (srcManualQuestTag) {
         html += " " + srcManualQuestTag;
       }
@@ -752,10 +774,6 @@ function renderManualQuestTags(questNames) {
   return '<span class="quest-tag">[Needed for: ' + parts.join(", ") + "]</span>";
 }
 
-/**
- * Find all items that recycle into the target item (Recycled From list),
- * using recycle1 / recycle2 from Items_Master.
- */
 function findRecyclersForItem(targetName) {
   const targetKey = normalizeName(targetName);
   const results = [];
@@ -782,7 +800,7 @@ function findRecyclersForItem(targetName) {
         value: item.value,
         manualQuestNames: item.manualQuestNames,
         qty: totalQty || null,
-        salvageQty: null // reserved for future salvage data
+        salvageQty: null
       });
     }
   }
@@ -791,9 +809,9 @@ function findRecyclersForItem(targetName) {
 }
 
 /**
- * FULL ITEM LOOKUP – by item name (per-item button)
- * Uses the Items_Master row only.
+ * FULL ITEM LOOKUP
  */
+
 function fullItemLookupByName(name) {
   if (!state.dataLoaded) {
     dom.result.textContent = "Still loading data…";
@@ -813,9 +831,6 @@ function fullItemLookupByName(name) {
   setInstructionsVisible(false);
 }
 
-/**
- * Render a full-detail view from Items_Master columns only.
- */
 function renderFullItemDetailsFromMaster(item) {
   const rarityClr = rarityColor(item.rarity);
   const valueNum = Number(item.value) || 0;
@@ -827,7 +842,6 @@ function renderFullItemDetailsFromMaster(item) {
 
   let html = '<div class="item-block">';
 
-  // Title
   html += '<div class="item-title">';
   if (itemUrl) {
     html += '<a class="item-link" href="' + itemUrl +
@@ -843,7 +857,6 @@ function renderFullItemDetailsFromMaster(item) {
   }
   html += "</div>";
 
-  // Core meta
   if (FULL_LOOKUP_CONFIG.showApiId && item.apiId) {
     html += '<div class="line-small">API ID: ' + escapeHtml(String(item.apiId)) + "</div>";
   }
@@ -964,7 +977,6 @@ function attachEventHandlers() {
     }
   });
 
-  // Event delegation for per-item "Full Info" buttons inside #result
   dom.result.addEventListener("click", (event) => {
     const btn = event.target.closest(".full-item-btn");
     if (!btn) return;
