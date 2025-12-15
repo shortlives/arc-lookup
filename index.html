@@ -1,153 +1,131 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>ARC Lookup</title>
+<meta charset="utf-8">
+<title>ARC Lookup</title>
 
-  <!-- MetaForge tooltips -->
-  <script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
+<!-- MetaForge tooltips (unchanged) -->
+<script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
 
-  <style>
-    body {
-      background:#000;
-      color:#fff;
-      font-family:Segoe UI, sans-serif;
-      padding:20px;
-      max-width:900px;
-      margin:0 auto;
-    }
+<style>
+  body {
+    background:#000;
+    color:#fff;
+    font-family:Segoe UI, sans-serif;
+    padding:20px;
+    max-width:900px;
+    margin:0 auto;
+  }
 
-    .top-bar {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:10px;
-    }
+  /* ================= TOP BAR ================= */
 
-    .top-buttons {
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
+  .top-bar {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+  }
 
-    .top-buttons a,
-    .top-buttons button {
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      padding:6px 12px;
-      font-size:14px;
-      cursor:pointer;
-      text-decoration:none;
-    }
+  .top-buttons {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
 
-    .status {
-      font-size:12px;
-      font-weight:bold;
-    }
-    .loading { color:#ff5555; }
-    .loaded { color:#33cc66; }
-    .error { color:#ff9933; }
+  .top-buttons a,
+  .top-buttons button {
+    background:#222;
+    color:#fff;
+    border:1px solid #444;
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:14px;
+    cursor:pointer;
+    text-decoration:none;
+  }
 
-    .search-row {
-      display:flex;
-      gap:8px;
-      margin-bottom:8px;
-    }
+  .status {
+    font-size:12px;
+    font-weight:bold;
+  }
+  .loading { color:#ff5555; }
+  .loaded  { color:#33cc66; }
+  .error   { color:#ff9933; }
 
-    #search {
-      flex:1;
-      font-size:22px;
-      padding:12px;
-    }
+  /* ================= SEARCH ================= */
 
-    #clear-search {
-      padding:10px 14px;
-      font-size:18px;
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      cursor:pointer;
-    }
+  .search-row {
+    display:flex;
+    gap:8px;
+    margin-bottom:10px;
+  }
 
-    .filters {
-      display:none;
-      gap:6px;
-      flex-wrap:wrap;
-      margin-bottom:10px;
-    }
+  #search {
+    flex:1;
+    font-size:22px;
+    padding:12px;
+  }
 
-    .filters button {
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      padding:4px 10px;
-      font-size:13px;
-      cursor:pointer;
-    }
+  #clear-search {
+    padding:10px 14px;
+    font-size:18px;
+    background:#222;
+    color:#fff;
+    border:1px solid #444;
+    border-radius:6px;
+    cursor:pointer;
+  }
 
-    .item {
-      margin-bottom:14px;
-    }
+  /* ================= ITEMS ================= */
 
-    .item-title {
-      font-size:26px;
-      font-weight:bold;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
+  .item {
+    margin-bottom:16px;
+  }
 
-    .item-title a { text-decoration:none; }
+  .item-title {
+    font-size:26px;
+    font-weight:bold;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
 
-    .value {
-      font-size:20px;
-    }
+  .item-title a {
+    text-decoration:none;
+  }
 
-    .notes {
-      color:#ff6666;
-      margin:4px 0;
-    }
+  .value {
+    font-size:20px;
+  }
 
-    .line {
-      margin:4px 0;
-      font-size:18px;
-    }
+  .notes {
+    color:#ff6666;
+    margin:6px 0;
+  }
 
-    .line-small {
-      font-size:14px;
-      color:#ccc;
-    }
+  .line {
+    margin:4px 0;
+    font-size:18px;
+  }
 
-    hr {
-      border:1px solid #333;
-      margin:10px 0;
-    }
-
-    .full-btn {
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      padding:4px 8px;
-      font-size:12px;
-      cursor:pointer;
-    }
-  </style>
+  hr {
+    border:1px solid #333;
+    margin:10px 0;
+  }
+</style>
 </head>
 
 <body>
+
+<!-- ================= UI ================= -->
 
 <div class="top-bar">
   <div class="top-buttons">
     <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
     <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=491619272"
        target="_blank">Spreadsheet</a>
-    <button id="showAll">Show All (High → Low)</button>
+    <button id="showAllBtn">Show All (High → Low)</button>
   </div>
   <div id="status" class="status loading">Loading…</div>
 </div>
@@ -157,37 +135,33 @@
   <button id="clear-search">×</button>
 </div>
 
-<div class="filters" id="filters">
-  <button data-type="default">Default</button>
-  <button data-type="weapon">Weapon</button>
-  <button data-type="modification">Modification</button>
-  <button data-type="blueprint">Blueprint</button>
-  <button data-type="key">Key</button>
-  <button data-type="quest item">Quest Item</button>
-  <button data-type="misc">Misc</button>
-</div>
-
 <div id="result"></div>
 
 <script>
 "use strict";
 
-/* ================= CONFIG ================= */
+/* ============================================================
+   CONFIG
+   ============================================================ */
 
-const MASTER_CSV_URL =
+const ITEMS_MASTER_CSV =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=491619272&single=true&output=csv";
 
-/* ================= STATE ================= */
+/* ============================================================
+   STATE
+   ============================================================ */
 
 const state = {
   items: [],
-  byName: new Map(),
   headers: [],
+  config: {},   // column -> config value (row 2)
   colIndex: {},
   loaded: false
 };
 
-/* ================= CSV PARSER (ROBUST) ================= */
+/* ============================================================
+   ROBUST CSV PARSER (RFC-4180 style)
+   ============================================================ */
 
 function parseCsv(text) {
   const rows = [];
@@ -204,10 +178,10 @@ function parseCsv(text) {
       i++;
     } else if (c === '"') {
       inQuotes = !inQuotes;
-    } else if (c === "," && !inQuotes) {
+    } else if (c === ',' && !inQuotes) {
       row.push(field);
       field = "";
-    } else if ((c === "\n" || c === "\r") && !inQuotes) {
+    } else if ((c === '\n' || c === '\r') && !inQuotes) {
       if (field || row.length) {
         row.push(field);
         rows.push(row);
@@ -227,111 +201,162 @@ function parseCsv(text) {
   return rows;
 }
 
-function canon(h) {
-  return h.toLowerCase().replace(/[^a-z0-9]/g,"");
+/* ============================================================
+   UTILS
+   ============================================================ */
+
+function canon(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]/g,"");
 }
-
-/* ================= LOAD DATA ================= */
-
-async function loadData() {
-  try {
-    const res = await fetch(MASTER_CSV_URL);
-    const text = await res.text();
-
-    const rows = parseCsv(text);
-    const headers = rows.shift().map(h => h.trim());
-    state.headers = headers;
-
-    headers.forEach((h,i) => {
-      const k = canon(h);
-      if (!(k in state.colIndex)) state.colIndex[k] = i;
-    });
-
-    for (const r of rows) {
-      const name = r[state.colIndex.name];
-      if (!name) continue;
-
-      const enabledRaw = (r[state.colIndex.enabled] || "").toLowerCase().trim();
-      if (["false","0","no"].includes(enabledRaw)) continue;
-
-      const valueRaw = r[state.colIndex.value] || "";
-      const valueNum = Number(valueRaw.replace(/,/g,"")) || 0;
-
-      const item = {
-        name,
-        apiId: r[state.colIndex.apiid] || "",
-        rarity: r[state.colIndex.rarity] || "",
-        valueNum,
-        valueRaw,
-        itemType: (r[state.colIndex.itemtype] || "").toLowerCase(),
-        notes: r[state.colIndex.notes] || "",
-        raw: r
-      };
-
-      state.items.push(item);
-      state.byName.set(name.toLowerCase(), item);
-    }
-
-    state.loaded = true;
-    document.getElementById("status").textContent = "Loaded";
-    document.getElementById("status").className = "status loaded";
-    setTimeout(() => document.getElementById("status").textContent = "", 5000);
-
-  } catch (e) {
-    document.getElementById("status").textContent = "Error loading data";
-    document.getElementById("status").className = "status error";
-    console.error(e);
-  }
-}
-
-/* ================= RENDER ================= */
 
 function rarityColor(r) {
-  r = r.toLowerCase();
+  r = (r || "").toLowerCase();
   if (r.includes("legendary")) return "#ffd700";
-  if (r.includes("epic")) return "#ff00ff";
-  if (r.includes("rare")) return "#00bfff";
-  if (r.includes("uncommon")) return "#00ff00";
-  return "#fff";
+  if (r.includes("epic"))      return "#ff00ff";
+  if (r.includes("rare"))      return "#00bfff";
+  if (r.includes("uncommon"))  return "#00ff00";
+  return "#ffffff";
 }
 
 function priceColor(v) {
-  if (v <= 1000) return "#fff";
+  if (v <= 1000) return "#ffffff";
   if (v <= 2000) return "#00ff00";
   if (v <= 5000) return "#ff69b4";
   return "#ffd700";
 }
 
-function render(items) {
+/**
+ * Decides whether a field should render:
+ *  - Column must be enabled in CONFIG row
+ *  - Value must not be empty or zero
+ */
+function shouldRenderField(colName, rawValue) {
+  const cfg = state.config[colName];
+  if (!cfg || cfg.toLowerCase() !== "show") return false;
+
+  if (rawValue === null || rawValue === undefined) return false;
+
+  const v = String(rawValue).trim();
+  if (v === "" || v === "0") return false;
+
+  return true;
+}
+
+/* ============================================================
+   DATA LOADING
+   ============================================================ */
+
+async function loadData() {
+  try {
+    const res = await fetch(ITEMS_MASTER_CSV);
+    const text = await res.text();
+
+    const rows = parseCsv(text);
+
+    /* Row 1 = headers */
+    const headers = rows.shift().map(h => h.trim());
+    state.headers = headers;
+
+    /* Row 2 = CONFIG */
+    const configRow = rows.shift();
+    headers.forEach((h,i) => {
+      state.config[h] = (configRow[i] || "").trim();
+      state.colIndex[canon(h)] = i;
+    });
+
+    /* Remaining rows = ITEMS */
+    for (const r of rows) {
+      const name = r[state.colIndex.name];
+      if (!name) continue;
+
+      const enabledRaw = (r[state.colIndex.enabled] || "").toLowerCase();
+      if (["false","0","no"].includes(enabledRaw)) continue;
+
+      const valueRaw = r[state.colIndex.value] || "";
+      const valueNum = Number(valueRaw.replace(/,/g,"")) || 0;
+
+      state.items.push({
+        name,
+        apiId: r[state.colIndex.apiid] || "",
+        rarity: r[state.colIndex.rarity] || "",
+        valueNum,
+        valueRaw,
+        row: r
+      });
+    }
+
+    state.loaded = true;
+    const status = document.getElementById("status");
+    status.textContent = "Loaded";
+    status.className = "status loaded";
+    setTimeout(() => status.textContent = "", 5000);
+
+  } catch (err) {
+    console.error(err);
+    const status = document.getElementById("status");
+    status.textContent = "Error loading data";
+    status.className = "status error";
+  }
+}
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+
+function renderItems(items) {
   const out = document.getElementById("result");
   out.innerHTML = "";
 
   for (const it of items) {
-    const a = document.createElement("div");
-    a.className = "item";
+    const div = document.createElement("div");
+    div.className = "item";
 
-    a.innerHTML = `
+    const link = it.apiId
+      ? `<a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank"
+            style="color:${rarityColor(it.rarity)}">${it.name}</a>`
+      : `<span style="color:${rarityColor(it.rarity)}">${it.name}</span>`;
+
+    let html = `
       <div class="item-title">
-        <a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank"
-           style="color:${rarityColor(it.rarity)}">${it.name}</a>
+        ${link}
         <span class="value" style="color:${priceColor(it.valueNum)}">
           ${it.valueRaw || it.valueNum}
         </span>
-        <button class="full-btn" data-name="${it.name}">Full Info</button>
       </div>
-      ${it.notes ? `<div class="notes"><strong>Notes:</strong> ${it.notes}</div>` : ""}
-      <hr>
     `;
-    out.appendChild(a);
+
+    const notes = it.row[state.colIndex.notes];
+    if (shouldRenderField("notes", notes)) {
+      html += `<div class="notes"><strong>Notes:</strong> ${notes}</div>`;
+    }
+
+    for (let i = 0; i < state.headers.length; i++) {
+      const col = state.headers[i];
+      if (["api_id","name","rarity","value","notes","enabled"].includes(col)) continue;
+
+      const raw = it.row[i];
+      if (!shouldRenderField(col, raw)) continue;
+
+      html += `<div class="line"><strong>${col}:</strong> ${raw}</div>`;
+    }
+
+    html += "<hr>";
+    div.innerHTML = html;
+    out.appendChild(div);
   }
 }
 
-/* ================= UI ================= */
+/* ============================================================
+   UI EVENTS
+   ============================================================ */
 
 document.getElementById("search").addEventListener("input", e => {
-  const q = e.target.value.toLowerCase();
-  if (!q) return (document.getElementById("result").innerHTML = "");
-  render(state.items.filter(i => i.name.toLowerCase().includes(q)));
+  const q = e.target.value.toLowerCase().trim();
+  if (!q) {
+    document.getElementById("result").innerHTML = "";
+    return;
+  }
+  renderItems(state.items.filter(i => i.name.toLowerCase().includes(q)));
 });
 
 document.getElementById("clear-search").onclick = () => {
@@ -339,20 +364,13 @@ document.getElementById("clear-search").onclick = () => {
   document.getElementById("result").innerHTML = "";
 };
 
-document.getElementById("showAll").onclick = () => {
-  document.getElementById("filters").style.display = "flex";
-  render([...state.items].sort((a,b) => b.valueNum - a.valueNum));
+document.getElementById("showAllBtn").onclick = () => {
+  renderItems([...state.items].sort((a,b) => b.valueNum - a.valueNum));
 };
 
-document.getElementById("filters").onclick = e => {
-  if (!e.target.dataset.type) return;
-  const t = e.target.dataset.type;
-  if (t === "default") {
-    render(state.items);
-  } else {
-    render(state.items.filter(i => i.itemType === t));
-  }
-};
+/* ============================================================
+   BOOT
+   ============================================================ */
 
 loadData();
 </script>
