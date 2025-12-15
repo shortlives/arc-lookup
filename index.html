@@ -141,11 +141,12 @@
       color:#ccc;
     }
 
-    .rarity-letter {
+    /* Colored hyphen prefix on "Recycled From" lines */
+    .rarity-prefix {
       display:inline-block;
       width:18px;
       text-align:center;
-      margin-left:4px;
+      margin-right:4px;
       font-weight:bold;
     }
 
@@ -203,7 +204,7 @@
   <div id="instructions" class="instructions hidden">
     <div class="instructions-title">How to read the colors</div>
     <div class="instructions-row">
-      Item name (rarity):
+      Item Rarity:
       <span class="pill pill-common">Common</span>
       <span class="pill pill-uncommon">Uncommon</span>
       <span class="pill pill-rare">Rare</span>
@@ -216,10 +217,6 @@
       <span class="pill pill-price-2">1001–2000</span>
       <span class="pill pill-price-3">2001–5000</span>
       <span class="pill pill-price-4">5001+</span>
-    </div>
-    <div class="instructions-row">
-      R / S tags:
-      <span class="pill">R-# = from recycling · S-# = from salvaging</span>
     </div>
   </div>
 
@@ -289,12 +286,10 @@ const dom = {
  * UTILITIES
  */
 
-// Normalize item names for matching
 function normalizeName(str) {
   return (str || "").trim().toLowerCase();
 }
 
-// Slugify quest names if we need a URL slug and API didn't give one
 function slugifyName(str) {
   return (str || "")
     .toLowerCase()
@@ -302,7 +297,6 @@ function slugifyName(str) {
     .replace(/^-+|-+$/g, "");
 }
 
-// Basic HTML escaping
 function escapeHtml(str) {
   return (str || "").replace(/[&<>"']/g, ch => {
     switch (ch) {
@@ -316,7 +310,6 @@ function escapeHtml(str) {
   });
 }
 
-// Parse CSV line
 function csvSplit(row) {
   const out = [];
   let field = "";
@@ -338,7 +331,6 @@ function csvSplit(row) {
   return out;
 }
 
-// Rarity color (item title)
 function rarityColor(rarity) {
   const r = (rarity || "").toLowerCase();
   if (r.includes("uncommon"))  return "#00ff00";
@@ -348,17 +340,6 @@ function rarityColor(rarity) {
   return "#ffffff";
 }
 
-// Rarity letter + color (for R-letter badges)
-function rarityLetterAndColor(rarity) {
-  const r = (rarity || "").toLowerCase();
-  if (r.includes("legendary")) return { letter: "L", color: "#ffd700" };
-  if (r.includes("epic"))      return { letter: "E", color: "#ff00ff" };
-  if (r.includes("rare"))      return { letter: "R", color: "#00bfff" };
-  if (r.includes("uncommon"))  return { letter: "U", color: "#00ff00" };
-  return { letter: "C", color: "#ffffff" };
-}
-
-// Value color based on price
 function priceColor(value) {
   const n = Number(value) || 0;
   if (n <= 1000)  return "#ffffff";
@@ -367,7 +348,6 @@ function priceColor(value) {
   return "#ffd700";
 }
 
-// Parse recycle entries like "3 x Advanced Electrical Components"
 function parseRecycleEntry(entry) {
   if (!entry) return null;
   const trimmed = entry.trim();
@@ -415,7 +395,6 @@ async function init() {
   }
 }
 
-// Basic JSON fetch
 async function fetchJson(url) {
   const res = await fetch(url);
   if (!res.ok) {
@@ -424,7 +403,6 @@ async function fetchJson(url) {
   return res.json();
 }
 
-// Text fetch that fails silently (returns null) on error
 async function fetchTextSafe(url) {
   if (!url) return null;
   try {
@@ -436,7 +414,6 @@ async function fetchTextSafe(url) {
   }
 }
 
-// Overlay CSV for recycle/notes
 function parseExtraCsv(csvText) {
   const rows = csvText.replace(/\r/g, "").split("\n");
   rows.shift(); // header
@@ -464,14 +441,12 @@ function parseExtraCsv(csvText) {
   }
 }
 
-// Merge items API + overlay CSV
 function buildItemsFromApi(itemsJson) {
   const apiItems = Array.isArray(itemsJson?.data) ? itemsJson.data : [];
 
   const usedExtraKeys = new Set();
   const mergedItems = [];
 
-  // 1) Items that exist in API
   for (const it of apiItems) {
     const key = normalizeName(it.name);
     const extra = state.extrasByName.get(key);
@@ -481,7 +456,6 @@ function buildItemsFromApi(itemsJson) {
     }
 
     const merged = {
-      // API
       id: it.id,
       name: it.name,
       rarity: it.rarity || extra?.rarity || "",
@@ -493,7 +467,6 @@ function buildItemsFromApi(itemsJson) {
       flavorText: it.flavor_text || "",
       lootArea: it.loot_area || "",
 
-      // Overlay
       recycle1: extra?.recycle1 || "",
       recycle2: extra?.recycle2 || "",
       extraNotes: extra?.notes || ""
@@ -503,7 +476,6 @@ function buildItemsFromApi(itemsJson) {
     state.itemByName.set(key, merged);
   }
 
-  // 2) Extra sheet-only rows
   for (const [key, extra] of state.extrasByName.entries()) {
     if (usedExtraKeys.has(key)) continue;
 
@@ -530,11 +502,10 @@ function buildItemsFromApi(itemsJson) {
   state.items = mergedItems;
 }
 
-// Build quest indexes: robust against different JSON shapes
+// Robust quest-index builder
 function buildQuestIndex(questsJson) {
   let quests = [];
 
-  // Support both { data:[...] } and [...] at top level
   if (Array.isArray(questsJson?.data)) {
     quests = questsJson.data;
   } else if (Array.isArray(questsJson)) {
@@ -568,7 +539,6 @@ function buildQuestIndex(questsJson) {
     for (const entry of arr) {
       if (!entry) continue;
 
-      // Try multiple possible field names
       const itemObj = entry.item || entry.target || null;
       const itemId =
         entry.item_id ||
@@ -604,7 +574,6 @@ function buildQuestIndex(questsJson) {
     const questSlug = quest.id || quest.slug || slugifyName(quest.name || "");
     const questName = quest.name || quest.title || questSlug;
 
-    // Required items: support several possible keys
     const requiredArrays = [];
     if (Array.isArray(quest.required_items)) requiredArrays.push(quest.required_items);
     if (Array.isArray(quest.requiredItems))  requiredArrays.push(quest.requiredItems);
@@ -614,7 +583,6 @@ function buildQuestIndex(questsJson) {
       processItemArray(arr, questName, questSlug, false);
     }
 
-    // Rewards: support several possible keys
     const rewardArrays = [];
     if (Array.isArray(quest.rewards))       rewardArrays.push(quest.rewards);
     if (Array.isArray(quest.reward_items))  rewardArrays.push(quest.reward_items);
@@ -789,29 +757,40 @@ function renderItemBlock(item) {
             recToParts.map(escapeHtml).join(", ") + "</div>";
   }
 
-  // Recycled From: white names + rarity letter + R-#
+  // Recycled From: colored hyphen + item name + R/S tags + price + (optional) quest tag
   if (recycledFrom.length) {
-    html += '<div class="line" style="color:#ffa500;">Recycled From:</div>';
+    html += '<div class="line" style="color:#ffa500;">Recycled From: ' +
+            '<span class="line-small">R = Recycled, S = Salvaged</span>' +
+            "</div>";
+
     for (const src of recycledFrom) {
-      const letterInfo = rarityLetterAndColor(src.rarity);
+      const rarityClrSrc = rarityColor(src.rarity);
       const srcValueNum = Number(src.value) || 0;
       const srcValueText = srcValueNum ? srcValueNum.toLocaleString("en-US") : "";
       const srcValueColor = priceColor(srcValueNum);
       const srcQuestUsage = getQuestUsageForItem(src);
       const srcQuestTagHtml = renderQuestTagCompact(srcQuestUsage.required);
 
+      const rsParts = [];
+      if (src.qty !== null) rsParts.push("R-" + src.qty);
+      if (src.salvageQty != null) rsParts.push("S-" + src.salvageQty);
+
       html += '<div class="line">';
+      // colored hyphen prefix
+      html += '<span class="rarity-prefix" style="color:' + rarityClrSrc + ';">-</span>';
+      // item name
       html += '<span style="color:#ffffff; font-weight:bold;">' +
               escapeHtml(src.name) + "</span>";
-      html += '<span class="rarity-letter" style="color:' + letterInfo.color +
-              ';">' + letterInfo.letter + "</span>";
+      // R/S tags (between name and value)
+      if (rsParts.length) {
+        html += ' <span class="line-small">' + rsParts.join(" · ") + "</span>";
+      }
+      // value
       if (srcValueText) {
         html += ' — <span style="color:' + srcValueColor +
                 '; font-weight:bold;">' + escapeHtml(srcValueText) + "</span>";
       }
-      if (src.qty !== null) {
-        html += ' <span class="line-small">R-' + src.qty + "</span>";
-      }
+      // quest tag
       if (srcQuestTagHtml) {
         html += " " + srcQuestTagHtml;
       }
@@ -827,7 +806,6 @@ function renderItemBlock(item) {
   return html;
 }
 
-// For a given item (not just id), look up quests by id and by name
 function getQuestUsageForItem(item) {
   if (!item) return { required: [], reward: [] };
 
@@ -850,7 +828,6 @@ function getQuestUsageForItem(item) {
   return { required, reward };
 }
 
-// Render a compact quest tag
 function renderQuestTagCompact(requiredList) {
   if (!requiredList || !requiredList.length) return "";
 
@@ -866,7 +843,6 @@ function renderQuestTagCompact(requiredList) {
   return '<span class="quest-tag">[Needed for: ' + parts.join(", ") + "]</span>";
 }
 
-// Find items that recycle into the target item (using sheet overlay)
 function findRecyclersForItem(targetName) {
   const targetKey = normalizeName(targetName);
   const results = [];
@@ -906,7 +882,6 @@ function findRecyclersForItem(targetName) {
  */
 
 function attachEventHandlers() {
-  // Typing in search
   dom.search.addEventListener("input", () => {
     const value = dom.search.value;
 
@@ -926,7 +901,6 @@ function attachEventHandlers() {
     }, 120);
   });
 
-  // On focus: clear and reset UI
   dom.search.addEventListener("focus", () => {
     if (dom.search.value) {
       dom.search.value = "";
@@ -936,7 +910,6 @@ function attachEventHandlers() {
     setInstructionsVisible(false);
   });
 
-  // Clear button
   dom.clearSearch.addEventListener("click", () => {
     dom.search.value = "";
     dom.search.focus();
@@ -945,7 +918,6 @@ function attachEventHandlers() {
     setInstructionsVisible(false);
   });
 
-  // Important Notes toggle
   dom.notesToggle.addEventListener("click", async () => {
     const isHidden = dom.notesPanel.classList.contains("hidden");
     if (isHidden) {
@@ -975,4 +947,3 @@ init();
 </script>
 </body>
 </html>
-
