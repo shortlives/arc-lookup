@@ -97,7 +97,7 @@
     .pill-legendary{ color:#ffd700; }
 
     /* Value color pills (match price color logic) */
-    .pill-price-1  { color:#ffffff; } /* <= 1000 */
+    .pill-price-1  { color:#ffffff; } /* ≤ 1000 */
     .pill-price-2  { color:#00ff00; } /* 1001–2000 */
     .pill-price-3  { color:#ff69b4; } /* 2001–5000 */
     .pill-price-4  { color:#ffd700; } /* 5001+ */
@@ -241,51 +241,39 @@
 "use strict";
 
 /**
- * -----------------------------
- *  CONFIGURATION
- * -----------------------------
+ * CONFIGURATION
  *
- * ITEMS_API_URL / QUESTS_API_URL:
- *   - Live data from MetaForge (items + quests).
- * EXTRA_CSV_URL:
- *   - Your existing sheet with columns:
- *     name, rarity, recycle1, recycle2, sellPrice, category, keep1, keep2, keep3, notes
- *   - We now use this ONLY for recycleX + notes (rarity/value come from API when available).
- * NOTES_CSV_URL:
- *   - A separate "Publish to web" CSV URL for the "Important Notes" tab.
- *   - Column A: each row = one note (A1, A2, A3, ...).
+ * items.json / quests.json should live in the same directory as this file.
+ * EXTRA_CSV_URL is your existing "items" sheet (for recycle1/2 + notes).
+ * NOTES_CSV_URL should be a published CSV for your "Important Notes" tab.
  */
-const ITEMS_API_URL = "./items.json";
+const ITEMS_API_URL  = "./items.json";
 const QUESTS_API_URL = "./quests.json";
 
-// Your original published CSV for item extras (recycles, notes, etc.)
 const EXTRA_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?output=csv";
 
-// TODO: Replace this with the CSV "Publish to web" link for the "Important Notes" tab.
-// Example format (once you publish that tab): 
-//   https://docs.google.com/spreadsheets/d/e/XXXXXX/pub?gid=YYYYY&single=true&output=csv
-const NOTES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv"; // <-- fill this in once you publish the Important Notes tab
+// TODO: update once you publish the Important Notes tab as CSV
+const NOTES_CSV_URL = ""; // e.g. "https://docs.google.com/...&single=true&output=csv"
 
 /**
- * -----------------------------
- *  GLOBAL STATE
- * -----------------------------
+ * GLOBAL STATE
  */
-
 const state = {
-  items: [],                   // merged item objects (API + sheet overlay)
-  itemByName: new Map(),       // name (normalized) -> item
-  extrasByName: new Map(),     // name (normalized) -> extra row from sheet
-  itemIdToRequiredQuests: new Map(), // item_id -> [{ questName, questSlug, quantity }]
-  itemIdToRewardQuests: new Map(),   // item_id -> [{ questName, questSlug, quantity }]
-  importantNotes: [],          // array of strings from Important Notes tab
+  items: [],                         // merged item objects (API + sheet overlay)
+  itemByName: new Map(),             // normalized name -> item
+  extrasByName: new Map(),           // normalized name -> extra row from sheet
+  itemIdToRequiredQuests: new Map(), // item id -> quest list
+  itemIdToRewardQuests: new Map(),   // item id -> quest list
+  itemNameToRequiredQuests: new Map(), // normalized item name -> quest list
+  itemNameToRewardQuests: new Map(),   // normalized item name -> quest list
+  importantNotes: [],
   dataLoaded: false,
   notesLoaded: false,
   notesError: null
 };
 
-// Simple DOM cache
+// DOM cache
 const dom = {
   search:       document.getElementById("search"),
   clearSearch:  document.getElementById("clear-search"),
@@ -298,17 +286,23 @@ const dom = {
 };
 
 /**
- * -----------------------------
- *  UTILITY HELPERS
- * -----------------------------
+ * UTILITIES
  */
 
-// Normalize item names for matching (case + whitespace).
+// Normalize item names for matching
 function normalizeName(str) {
   return (str || "").trim().toLowerCase();
 }
 
-// Basic HTML escaping to avoid issues with special characters.
+// Slugify quest names if we need a URL slug and API didn't give one
+function slugifyName(str) {
+  return (str || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// Basic HTML escaping
 function escapeHtml(str) {
   return (str || "").replace(/[&<>"']/g, ch => {
     switch (ch) {
@@ -322,7 +316,7 @@ function escapeHtml(str) {
   });
 }
 
-// Parse a CSV line into fields. Handles quoted fields with commas.
+// Parse CSV line
 function csvSplit(row) {
   const out = [];
   let field = "";
@@ -344,31 +338,27 @@ function csvSplit(row) {
   return out;
 }
 
-// Rarity color used for item title text and rarity letters.
+// Rarity color (item title)
 function rarityColor(rarity) {
   const r = (rarity || "").toLowerCase();
   if (r.includes("uncommon"))  return "#00ff00";
   if (r.includes("rare"))      return "#00bfff";
   if (r.includes("epic"))      return "#ff00ff";
   if (r.includes("legendary")) return "#ffd700";
-  return "#ffffff"; // common / unknown
+  return "#ffffff";
 }
 
-// Single-letter code and color for rarity badges on "Recycled From".
+// Rarity letter + color (for R-letter badges)
 function rarityLetterAndColor(rarity) {
   const r = (rarity || "").toLowerCase();
   if (r.includes("legendary")) return { letter: "L", color: "#ffd700" };
   if (r.includes("epic"))      return { letter: "E", color: "#ff00ff" };
   if (r.includes("rare"))      return { letter: "R", color: "#00bfff" };
   if (r.includes("uncommon"))  return { letter: "U", color: "#00ff00" };
-  return { letter: "C", color: "#ffffff" }; // Common / default
+  return { letter: "C", color: "#ffffff" };
 }
 
-// Value color based on coin range.
-//  <=1000: white
-// 1001–2000: green
-// 2001–5000: pink
-// 5001+: gold
+// Value color based on price
 function priceColor(value) {
   const n = Number(value) || 0;
   if (n <= 1000)  return "#ffffff";
@@ -377,9 +367,7 @@ function priceColor(value) {
   return "#ffd700";
 }
 
-// Parse a recycle entry like "3 x Advanced Electrical Components"
-// into { qty, itemName }.
-// If parsing fails, qty will be null, itemName is the trimmed string.
+// Parse recycle entries like "3 x Advanced Electrical Components"
 function parseRecycleEntry(entry) {
   if (!entry) return null;
   const trimmed = entry.trim();
@@ -396,13 +384,9 @@ function parseRecycleEntry(entry) {
 }
 
 /**
- * -----------------------------
- *  DATA LOADING
- * -----------------------------
+ * DATA LOADING
  */
 
-// Load everything we need on startup: items + quests + extra CSV.
-// Important Notes are loaded lazily the first time the button is opened.
 async function init() {
   dom.result.textContent = "Loading item data…";
 
@@ -427,11 +411,11 @@ async function init() {
   } catch (err) {
     console.error(err);
     dom.result.innerHTML =
-      '<div class="error">Error loading data from MetaForge or your sheet. Check console and URLs.</div>';
+      '<div class="error">Error loading data from items.json / quests.json or your sheet. Check the console and URLs.</div>';
   }
 }
 
-// Generic JSON fetch helper with basic error handling.
+// Basic JSON fetch
 async function fetchJson(url) {
   const res = await fetch(url);
   if (!res.ok) {
@@ -440,8 +424,7 @@ async function fetchJson(url) {
   return res.json();
 }
 
-// Fetch text but return null instead of throwing on error.
-// Used for overlay CSV so the page still works if sheet is misconfigured.
+// Text fetch that fails silently (returns null) on error
 async function fetchTextSafe(url) {
   if (!url) return null;
   try {
@@ -453,12 +436,10 @@ async function fetchTextSafe(url) {
   }
 }
 
-// Parse overlay CSV (your existing sheet).
-// Columns: 0 name, 1 rarity, 2 recycle1, 3 recycle2, 4 sellPrice, 5 category,
-//          6 keep1, 7 keep2, 8 keep3, 9 notes
+// Overlay CSV for recycle/notes
 function parseExtraCsv(csvText) {
   const rows = csvText.replace(/\r/g, "").split("\n");
-  rows.shift(); // drop header
+  rows.shift(); // header
 
   for (const row of rows) {
     if (!row.trim()) continue;
@@ -483,14 +464,14 @@ function parseExtraCsv(csvText) {
   }
 }
 
-// Build main item list from MetaForge API and merge with extras from sheet.
+// Merge items API + overlay CSV
 function buildItemsFromApi(itemsJson) {
   const apiItems = Array.isArray(itemsJson?.data) ? itemsJson.data : [];
 
   const usedExtraKeys = new Set();
   const mergedItems = [];
 
-  // 1) Items that exist in the API (primary source of truth)
+  // 1) Items that exist in API
   for (const it of apiItems) {
     const key = normalizeName(it.name);
     const extra = state.extrasByName.get(key);
@@ -500,19 +481,19 @@ function buildItemsFromApi(itemsJson) {
     }
 
     const merged = {
-      // API core
+      // API
       id: it.id,
       name: it.name,
       rarity: it.rarity || extra?.rarity || "",
-      // MetaForge "value" is numeric. Fallback to sheet's sellPrice if missing.
-      value: typeof it.value === "number" ? it.value :
-             (extra ? parseInt(extra.sellPrice.replace(/[^0-9]/g, ""), 10) || 0 : 0),
+      value: typeof it.value === "number"
+        ? it.value
+        : (extra ? parseInt(extra.sellPrice.replace(/[^0-9]/g, ""), 10) || 0 : 0),
       itemType: it.item_type || extra?.category || "",
       workbench: it.workbench || "",
       flavorText: it.flavor_text || "",
       lootArea: it.loot_area || "",
 
-      // Overlay from sheet (manual data you control)
+      // Overlay
       recycle1: extra?.recycle1 || "",
       recycle2: extra?.recycle2 || "",
       extraNotes: extra?.notes || ""
@@ -522,9 +503,9 @@ function buildItemsFromApi(itemsJson) {
     state.itemByName.set(key, merged);
   }
 
-  // 2) Any extra rows that don't exist in the API (custom items, placeholders, etc.)
+  // 2) Extra sheet-only rows
   for (const [key, extra] of state.extrasByName.entries()) {
-    if (usedExtraKeys.has(key)) continue; // already merged
+    if (usedExtraKeys.has(key)) continue;
 
     const fallbackValue = parseInt(extra.sellPrice.replace(/[^0-9]/g, ""), 10) || 0;
     const customItem = {
@@ -549,63 +530,112 @@ function buildItemsFromApi(itemsJson) {
   state.items = mergedItems;
 }
 
-// Build quick lookup: item_id -> quests that require or reward that item.
+// Build quest indexes: robust against different JSON shapes
 function buildQuestIndex(questsJson) {
-  const quests = Array.isArray(questsJson?.data) ? questsJson.data : [];
+  let quests = [];
 
-  const requiredMap = new Map();
-  const rewardMap   = new Map();
+  // Support both { data:[...] } and [...] at top level
+  if (Array.isArray(questsJson?.data)) {
+    quests = questsJson.data;
+  } else if (Array.isArray(questsJson)) {
+    quests = questsJson;
+  } else if (Array.isArray(questsJson?.results)) {
+    quests = questsJson.results;
+  }
 
-  for (const quest of quests) {
-    const questSlug = quest.id;   // used in /database/quest/<id>
-    const questName = quest.name;
+  if (!quests.length) {
+    console.warn("Quest JSON not in expected format or empty:", questsJson);
+    return;
+  }
 
-    // Required items for this quest
-    if (Array.isArray(quest.required_items)) {
-      for (const req of quest.required_items) {
-        const itemId = req.item_id;
-        const qty = Number(req.quantity) || null;
-        if (!itemId) continue;
+  console.log("Sample quest object from quests.json:", quests[0]);
 
-        const list = requiredMap.get(itemId) || [];
-        list.push({
-          questName,
-          questSlug,
-          quantity: qty
-        });
-        requiredMap.set(itemId, list);
+  const idReqMap   = new Map();
+  const idRewMap   = new Map();
+  const nameReqMap = new Map();
+  const nameRewMap = new Map();
+
+  function addToMap(map, key, value) {
+    if (!key) return;
+    const list = map.get(key) || [];
+    list.push(value);
+    map.set(key, list);
+  }
+
+  function processItemArray(arr, questName, questSlug, isReward) {
+    if (!Array.isArray(arr)) return;
+
+    for (const entry of arr) {
+      if (!entry) continue;
+
+      // Try multiple possible field names
+      const itemObj = entry.item || entry.target || null;
+      const itemId =
+        entry.item_id ||
+        entry.itemId ||
+        (itemObj && (itemObj.id || itemObj.slug || itemObj.item_id)) ||
+        entry.id ||
+        null;
+
+      const itemName =
+        (itemObj && itemObj.name) ||
+        entry.name ||
+        null;
+
+      let qty = entry.quantity ?? entry.qty ?? entry.amount ?? null;
+      if (typeof qty === "string") {
+        const parsed = parseFloat(qty);
+        if (!isNaN(parsed)) qty = parsed;
       }
-    }
 
-    // Items rewarded by this quest
-    if (Array.isArray(quest.rewards)) {
-      for (const rw of quest.rewards) {
-        const itemId = rw.item_id;
-        const qty = Number(rw.quantity) || null;
-        if (!itemId) continue;
+      const value = { questName, questSlug, quantity: qty };
 
-        const list = rewardMap.get(itemId) || [];
-        list.push({
-          questName,
-          questSlug,
-          quantity: qty
-        });
-        rewardMap.set(itemId, list);
+      if (isReward) {
+        if (itemId)   addToMap(idRewMap, itemId, value);
+        if (itemName) addToMap(nameRewMap, normalizeName(itemName), value);
+      } else {
+        if (itemId)   addToMap(idReqMap, itemId, value);
+        if (itemName) addToMap(nameReqMap, normalizeName(itemName), value);
       }
     }
   }
 
-  state.itemIdToRequiredQuests = requiredMap;
-  state.itemIdToRewardQuests   = rewardMap;
+  for (const quest of quests) {
+    const questSlug = quest.id || quest.slug || slugifyName(quest.name || "");
+    const questName = quest.name || quest.title || questSlug;
+
+    // Required items: support several possible keys
+    const requiredArrays = [];
+    if (Array.isArray(quest.required_items)) requiredArrays.push(quest.required_items);
+    if (Array.isArray(quest.requiredItems))  requiredArrays.push(quest.requiredItems);
+    if (Array.isArray(quest.requirements))   requiredArrays.push(quest.requirements);
+
+    for (const arr of requiredArrays) {
+      processItemArray(arr, questName, questSlug, false);
+    }
+
+    // Rewards: support several possible keys
+    const rewardArrays = [];
+    if (Array.isArray(quest.rewards))       rewardArrays.push(quest.rewards);
+    if (Array.isArray(quest.reward_items))  rewardArrays.push(quest.reward_items);
+
+    for (const arr of rewardArrays) {
+      processItemArray(arr, questName, questSlug, true);
+    }
+  }
+
+  state.itemIdToRequiredQuests   = idReqMap;
+  state.itemIdToRewardQuests     = idRewMap;
+  state.itemNameToRequiredQuests = nameReqMap;
+  state.itemNameToRewardQuests   = nameRewMap;
+
+  console.log("Quest index built. Items with requirements:", idReqMap.size || nameReqMap.size);
 }
 
 /**
- * -----------------------------
- *  IMPORTANT NOTES LOADING
- * -----------------------------
+ * IMPORTANT NOTES LOADING
  */
 
-// Load Important Notes the first time the panel is opened.
 async function ensureNotesLoaded() {
   if (state.notesLoaded || state.notesError || !NOTES_CSV_URL) return;
 
@@ -635,7 +665,6 @@ async function ensureNotesLoaded() {
   }
 }
 
-// Render the Important Notes panel from state.
 function renderNotesPanel() {
   if (!NOTES_CSV_URL) {
     dom.notesContent.innerHTML =
@@ -665,14 +694,11 @@ function renderNotesPanel() {
 }
 
 /**
- * -----------------------------
- *  SEARCH + RENDERING
- * -----------------------------
+ * SEARCH + RENDER
  */
 
 let searchDebounceTimer = null;
 
-// Main search entry point, called after debouncing.
 function runSearch(queryRaw) {
   const query = queryRaw.trim();
   const qNorm = normalizeName(query);
@@ -689,7 +715,6 @@ function runSearch(queryRaw) {
     return;
   }
 
-  // Simple substring match on item name.
   const matches = state.items.filter(it =>
     normalizeName(it.name).includes(qNorm)
   );
@@ -699,7 +724,6 @@ function runSearch(queryRaw) {
     return;
   }
 
-  // Prioritize items where the name starts with the query.
   matches.sort((a, b) => {
     const aName = normalizeName(a.name);
     const bName = normalizeName(b.name);
@@ -716,7 +740,6 @@ function runSearch(queryRaw) {
   dom.result.innerHTML = html;
 }
 
-// Render a single item (title, quests, recycle info, notes).
 function renderItemBlock(item) {
   const rarityClr = rarityColor(item.rarity);
   const valueNum = Number(item.value) || 0;
@@ -727,15 +750,14 @@ function renderItemBlock(item) {
     ? "https://metaforge.app/arc-raiders/database/item/" + encodeURIComponent(item.id)
     : null;
 
-  const questUsage = getQuestUsageForItem(item.id);
+  const questUsage = getQuestUsageForItem(item);
   const questTagHtml = renderQuestTagCompact(questUsage.required);
 
-  // Reverse recycle lookup: items that recycle *into* this item.
   const recycledFrom = findRecyclersForItem(item.name);
 
   let html = '<div class="item-block">';
 
-  // TITLE LINE
+  // Title line
   html += '<div class="item-title">';
   if (itemUrl) {
     html += '<a class="item-link" href="' + itemUrl +
@@ -767,7 +789,7 @@ function renderItemBlock(item) {
             recToParts.map(escapeHtml).join(", ") + "</div>";
   }
 
-  // Recycled From: each source item on its own line, with rarity letter + R-#.
+  // Recycled From: white names + rarity letter + R-#
   if (recycledFrom.length) {
     html += '<div class="line" style="color:#ffa500;">Recycled From:</div>';
     for (const src of recycledFrom) {
@@ -775,7 +797,7 @@ function renderItemBlock(item) {
       const srcValueNum = Number(src.value) || 0;
       const srcValueText = srcValueNum ? srcValueNum.toLocaleString("en-US") : "";
       const srcValueColor = priceColor(srcValueNum);
-      const srcQuestUsage = getQuestUsageForItem(src.id);
+      const srcQuestUsage = getQuestUsageForItem(src);
       const srcQuestTagHtml = renderQuestTagCompact(srcQuestUsage.required);
 
       html += '<div class="line">';
@@ -797,28 +819,38 @@ function renderItemBlock(item) {
     }
   }
 
-  // Notes from sheet overlay
   if (item.extraNotes) {
     html += '<div class="line">Notes: ' + escapeHtml(item.extraNotes) + "</div>";
   }
-
-  // Future expansion lines (crafting breakdown, salvage, profit, etc.) would slot here.
 
   html += "<hr></div>";
   return html;
 }
 
-// For a given item id, return quests that require it and quests that reward it.
-function getQuestUsageForItem(itemId) {
-  if (!itemId) {
-    return { required: [], reward: [] };
+// For a given item (not just id), look up quests by id and by name
+function getQuestUsageForItem(item) {
+  if (!item) return { required: [], reward: [] };
+
+  let required = [];
+  let reward = [];
+
+  if (item.id) {
+    required = state.itemIdToRequiredQuests.get(item.id) || [];
+    reward   = state.itemIdToRewardQuests.get(item.id) || [];
   }
-  const required = state.itemIdToRequiredQuests.get(itemId) || [];
-  const reward   = state.itemIdToRewardQuests.get(itemId) || [];
+
+  if (!required.length && !reward.length) {
+    const key = normalizeName(item.name);
+    if (key) {
+      required = state.itemNameToRequiredQuests.get(key) || required;
+      reward   = state.itemNameToRewardQuests.get(key) || reward;
+    }
+  }
+
   return { required, reward };
 }
 
-// Render a compact quest tag, e.g. [Needed for: Building a Library (x3, x1…)]
+// Render a compact quest tag
 function renderQuestTagCompact(requiredList) {
   if (!requiredList || !requiredList.length) return "";
 
@@ -834,8 +866,7 @@ function renderQuestTagCompact(requiredList) {
   return '<span class="quest-tag">[Needed for: ' + parts.join(", ") + "]</span>";
 }
 
-// Find items that recycle into the target item, based on sheet overlay.
-// Returns array of { id, name, rarity, value, qty }.
+// Find items that recycle into the target item (using sheet overlay)
 function findRecyclersForItem(targetName) {
   const targetKey = normalizeName(targetName);
   const results = [];
@@ -871,17 +902,14 @@ function findRecyclersForItem(targetName) {
 }
 
 /**
- * -----------------------------
- *  UI HANDLERS
- * -----------------------------
+ * UI HANDLERS
  */
 
 function attachEventHandlers() {
-  // Typing in search: debounce + hide/show UI elements.
+  // Typing in search
   dom.search.addEventListener("input", () => {
     const value = dom.search.value;
 
-    // If empty after typing, clear results and show top buttons again.
     if (!value.trim()) {
       dom.result.textContent = "Type an item name above to search.";
       setTopButtonsVisible(true);
@@ -898,7 +926,7 @@ function attachEventHandlers() {
     }, 120);
   });
 
-  // On focus: clear text AND clear results + show top buttons again.
+  // On focus: clear and reset UI
   dom.search.addEventListener("focus", () => {
     if (dom.search.value) {
       dom.search.value = "";
@@ -908,7 +936,7 @@ function attachEventHandlers() {
     setInstructionsVisible(false);
   });
 
-  // Clear button ("X") – mirrors the same behavior as clicking into the box but explicit.
+  // Clear button
   dom.clearSearch.addEventListener("click", () => {
     dom.search.value = "";
     dom.search.focus();
@@ -930,32 +958,20 @@ function attachEventHandlers() {
   });
 }
 
-// Show / hide main top buttons (Maps, Spreadsheet, Important Notes).
 function setTopButtonsVisible(visible) {
-  if (visible) {
-    dom.topButtons.classList.remove("hidden");
-  } else {
-    dom.topButtons.classList.add("hidden");
-  }
+  if (visible) dom.topButtons.classList.remove("hidden");
+  else dom.topButtons.classList.add("hidden");
 }
 
-// Show / hide the color instructions block.
 function setInstructionsVisible(visible) {
-  if (visible) {
-    dom.instructions.classList.remove("hidden");
-  } else {
-    dom.instructions.classList.add("hidden");
-  }
+  if (visible) dom.instructions.classList.remove("hidden");
+  else dom.instructions.classList.add("hidden");
 }
 
 /**
- * -----------------------------
- *  BOOTSTRAP
- * -----------------------------
+ * BOOTSTRAP
  */
-
 init();
 </script>
 </body>
 </html>
-
