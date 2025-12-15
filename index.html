@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <title>ARC Lookup</title>
 
-  <!-- MetaForge tooltips script (for item/quest hover tooltips) -->
+  <!-- MetaForge tooltips -->
   <script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
 
   <style>
@@ -17,12 +17,10 @@
       margin:0 auto;
     }
 
-    /* Top bar: buttons on left, load status on right */
     .top-bar {
       display:flex;
       justify-content:space-between;
       align-items:center;
-      gap:10px;
       margin-bottom:10px;
     }
 
@@ -40,58 +38,48 @@
       border-radius:6px;
       padding:6px 12px;
       font-size:14px;
-      text-decoration:none;
       cursor:pointer;
-    }
-    .top-buttons a:hover,
-    .top-buttons button:hover {
-      background:#333;
+      text-decoration:none;
     }
 
-    /* Load status indicator (in line with top buttons, on the right) */
-    .status-indicator {
+    .status {
       font-size:12px;
       font-weight:bold;
-      white-space:nowrap;
     }
-    .status-loading { color:#ff5555; }
-    .status-loaded  { color:#33cc66; }
-    .status-error   { color:#ff9933; }
+    .loading { color:#ff5555; }
+    .loaded { color:#33cc66; }
+    .error { color:#ff9933; }
 
     .search-row {
       display:flex;
-      align-items:center;
       gap:8px;
-      margin-bottom:10px;
+      margin-bottom:8px;
     }
 
     #search {
+      flex:1;
       font-size:22px;
       padding:12px;
-      flex:1;
     }
 
     #clear-search {
-      font-size:18px;
       padding:10px 14px;
-      border-radius:6px;
-      border:1px solid #444;
+      font-size:18px;
       background:#222;
       color:#fff;
+      border:1px solid #444;
+      border-radius:6px;
       cursor:pointer;
     }
-    #clear-search:hover {
-      background:#333;
-    }
 
-    .filters-row {
-      display:flex;
-      flex-wrap:wrap;
+    .filters {
+      display:none;
       gap:6px;
+      flex-wrap:wrap;
       margin-bottom:10px;
     }
 
-    .filters-row button {
+    .filters button {
       background:#222;
       color:#fff;
       border:1px solid #444;
@@ -100,78 +88,29 @@
       font-size:13px;
       cursor:pointer;
     }
-    .filters-row button:hover {
-      background:#333;
-    }
 
-    .instructions {
-      background:#111;
-      border:1px solid #333;
-      border-radius:8px;
-      padding:10px 12px;
-      font-size:13px;
-      margin-bottom:12px;
-    }
-    .instructions-title {
-      font-weight:bold;
-      margin-bottom:4px;
-    }
-    .instructions-row {
-      margin:3px 0;
-    }
-    .pill {
-      display:inline-block;
-      padding:2px 6px;
-      border-radius:6px;
-      border:1px solid #444;
-      margin-left:4px;
-      font-size:12px;
-    }
-
-    /* Rarity color pills (match item title colors) */
-    .pill-common   { color:#ffffff; }
-    .pill-uncommon { color:#00ff00; }
-    .pill-rare     { color:#00bfff; }
-    .pill-epic     { color:#ff00ff; }
-    .pill-legendary{ color:#ffd700; }
-
-    /* Value color pills (match price color logic) */
-    .pill-price-1  { color:#ffffff; } /* ≤ 1000 */
-    .pill-price-2  { color:#00ff00; } /* 1001–2000 */
-    .pill-price-3  { color:#ff69b4; } /* 2001–5000 */
-    .pill-price-4  { color:#ffd700; } /* 5001+ */
-
-    .hidden {
-      display:none !important;
-    }
-
-    .item-block {
-      margin:10px 0 14px 0;
+    .item {
+      margin-bottom:14px;
     }
 
     .item-title {
       font-size:26px;
       font-weight:bold;
-      margin-bottom:4px;
       display:flex;
+      gap:10px;
       align-items:center;
       flex-wrap:wrap;
-      gap:8px;
     }
 
-    .item-link {
-      text-decoration:none;
-    }
+    .item-title a { text-decoration:none; }
 
-    .item-value {
+    .value {
       font-size:20px;
-      margin-left:6px;
     }
 
-    .quest-tag {
-      font-size:16px;
-      margin-left:8px;
-      color:#ffd700;
+    .notes {
+      color:#ff6666;
+      margin:4px 0;
     }
 
     .line {
@@ -180,36 +119,8 @@
     }
 
     .line-small {
-      margin:3px 0;
       font-size:14px;
       color:#ccc;
-    }
-
-    /* Colored hyphen prefix on "Recycled From" lines */
-    .rarity-prefix {
-      display:inline-block;
-      width:18px;
-      text-align:center;
-      margin-right:4px;
-      font-weight:bold;
-    }
-
-    .notes-panel {
-      background:#111;
-      border:1px solid #333;
-      border-radius:8px;
-      padding:10px 12px;
-      margin-bottom:12px;
-      font-size:14px;
-    }
-
-    .notes-panel h2 {
-      margin-top:0;
-      font-size:18px;
-    }
-
-    .note-item {
-      margin:4px 0;
     }
 
     hr {
@@ -217,1132 +128,234 @@
       margin:10px 0;
     }
 
-    .error {
-      color:#ff6666;
-    }
-
-    footer {
-      margin-top:16px;
-      font-size:12px;
-      color:#888;
-    }
-    footer a {
-      color:#66b3ff;
-    }
-
-    .full-item-btn {
+    .full-btn {
       background:#222;
       color:#fff;
       border:1px solid #444;
       border-radius:6px;
-      padding:3px 8px;
+      padding:4px 8px;
       font-size:12px;
       cursor:pointer;
     }
-    .full-item-btn:hover {
-      background:#333;
-    }
   </style>
 </head>
+
 <body>
-  <!-- Top bar: left = buttons, right = load status -->
-  <div class="top-bar">
-    <div class="top-buttons" id="topButtons">
-      <a href="https://mapgenie.io/arc-raiders" target="_blank" rel="noopener noreferrer">Maps</a>
-      <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit#gid=491619272"
-         target="_blank" rel="noopener noreferrer">Spreadsheet</a>
-      <button type="button" id="showAllBtn">Show All (High → Low)</button>
-      <button type="button" id="notesToggle">Important Notes</button>
-    </div>
-    <div id="loadStatus" class="status-indicator status-loading">Loading…</div>
+
+<div class="top-bar">
+  <div class="top-buttons">
+    <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
+    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=491619272"
+       target="_blank">Spreadsheet</a>
+    <button id="showAll">Show All (High → Low)</button>
   </div>
+  <div id="status" class="status loading">Loading…</div>
+</div>
 
-  <div class="search-row">
-    <input id="search" placeholder="Type item name..." autofocus>
-    <button id="clear-search" type="button" aria-label="Clear search">×</button>
-  </div>
+<div class="search-row">
+  <input id="search" placeholder="Type item name…">
+  <button id="clear-search">×</button>
+</div>
 
-  <!-- Category filter buttons under search; hidden until Show All is used -->
-  <div class="filters-row hidden" id="filtersRow">
-    <button type="button" id="filterDefaultBtn">Default</button>
-    <button type="button" id="filterWeaponBtn">Weapon</button>
-    <button type="button" id="filterModsBtn">Modification</button>
-    <button type="button" id="filterBlueprintBtn">Blueprint</button>
-    <button type="button" id="filterKeyBtn">Key</button>
-    <button type="button" id="filterQuestBtn">Quest Item</button>
-    <button type="button" id="filterMiscBtn">Misc</button>
-  </div>
+<div class="filters" id="filters">
+  <button data-type="default">Default</button>
+  <button data-type="weapon">Weapon</button>
+  <button data-type="modification">Modification</button>
+  <button data-type="blueprint">Blueprint</button>
+  <button data-type="key">Key</button>
+  <button data-type="quest item">Quest Item</button>
+  <button data-type="misc">Misc</button>
+</div>
 
-  <!-- Shown only when there is text in the search box -->
-  <div id="instructions" class="instructions hidden">
-    <div class="instructions-title">How to read the colors</div>
-    <div class="instructions-row">
-      Item Rarity:
-      <span class="pill pill-common">Common</span>
-      <span class="pill pill-uncommon">Uncommon</span>
-      <span class="pill pill-rare">Rare</span>
-      <span class="pill pill-epic">Epic</span>
-      <span class="pill pill-legendary">Legendary</span>
-    </div>
-    <div class="instructions-row">
-      Sell value:
-      <span class="pill pill-price-1">≤ 1000</span>
-      <span class="pill pill-price-2">1001–2000</span>
-      <span class="pill pill-price-3">2001–5000</span>
-      <span class="pill pill-price-4">5001+</span>
-    </div>
-  </div>
-
-  <!-- Important Notes (Google Sheet "Important Notes" tab) -->
-  <div id="notesPanel" class="notes-panel hidden">
-    <h2>Important Notes</h2>
-    <div id="notesContent">Loading…</div>
-  </div>
-
-  <div id="result"></div>
-
-  <footer>
-    Data sourced via your Google Sheet and
-    <a href="https://metaforge.app/arc-raiders" target="_blank" rel="noopener noreferrer">MetaForge ARC Raiders</a>.
-  </footer>
+<div id="result"></div>
 
 <script>
 "use strict";
 
-/**
- * CONFIGURATION
- */
+/* ================= CONFIG ================= */
+
 const MASTER_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=491619272&single=true&output=csv";
 
-const NOTES_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv";
+/* ================= STATE ================= */
 
-/**
- * Item types to hide by default in "Show All" view,
- * but exposed via category buttons.
- * (Includes both singular and plural variants for robustness.)
- */
-const HIDDEN_ITEM_TYPES = new Set([
-  "weapon",
-  "modification",
-  "modifications",
-  "blueprint",
-  "key",
-  "quest item",
-  "misc"
-]);
-
-/**
- * GLOBAL STATE
- */
 const state = {
-  items: [],               // enabled items
-  itemByName: new Map(),   // normalized name -> full item
-  importantNotes: [],
-  dataLoaded: false,
-  notesLoaded: false,
-  notesError: null,
-  masterHeaders: [],       // header row strings
-  colIndex: {},            // canonical header -> index (first occurrence)
-  columnVisibility: []     // per-column visibility for FULL INFO (from CONFIG row)
+  items: [],
+  byName: new Map(),
+  headers: [],
+  colIndex: {},
+  loaded: false
 };
 
-let hasRetriedLoad = false;
+/* ================= CSV PARSER (ROBUST) ================= */
 
-// DOM cache
-const dom = {
-  loadStatus:       document.getElementById("loadStatus"),
-  search:           document.getElementById("search"),
-  clearSearch:      document.getElementById("clear-search"),
-  topButtons:       document.getElementById("topButtons"),
-  instructions:     document.getElementById("instructions"),
-  result:           document.getElementById("result"),
-  notesPanel:       document.getElementById("notesPanel"),
-  notesContent:     document.getElementById("notesContent"),
-  notesToggle:      document.getElementById("notesToggle"),
-  showAllBtn:       document.getElementById("showAllBtn"),
-  filtersRow:       document.getElementById("filtersRow"),
-  filterDefaultBtn: document.getElementById("filterDefaultBtn"),
-  filterWeaponBtn:  document.getElementById("filterWeaponBtn"),
-  filterModsBtn:    document.getElementById("filterModsBtn"),
-  filterBlueprintBtn:document.getElementById("filterBlueprintBtn"),
-  filterKeyBtn:     document.getElementById("filterKeyBtn"),
-  filterQuestBtn:   document.getElementById("filterQuestBtn"),
-  filterMiscBtn:    document.getElementById("filterMiscBtn")
-};
-
-/**
- * UTILITIES
- */
-
-function normalizeName(str) {
-  return (str || "").trim().toLowerCase();
-}
-
-function escapeHtml(str) {
-  return (str || "").replace(/[&<>"']/g, ch => {
-    switch (ch) {
-      case "&": return "&amp;";
-      case "<": return "&lt;";
-      case ">": return "&gt;";
-      case '"': return "&quot;";
-      case "'": return "&#39;";
-      default:  return ch;
-    }
-  });
-}
-
-/**
- * Canonicalize a header for robust matching:
- *  - lowercase
- *  - remove all non-alphanumeric characters
- */
-function canonicalKey(header) {
-  return (header || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-}
-
-function csvSplit(row) {
-  const out = [];
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
   let field = "";
   let inQuotes = false;
 
-  for (const ch of row) {
-    if (ch === '"') {
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const n = text[i + 1];
+
+    if (c === '"' && inQuotes && n === '"') {
+      field += '"';
+      i++;
+    } else if (c === '"') {
       inQuotes = !inQuotes;
-      continue;
-    }
-    if (ch === "," && !inQuotes) {
-      out.push(field);
+    } else if (c === "," && !inQuotes) {
+      row.push(field);
       field = "";
-      continue;
+    } else if ((c === "\n" || c === "\r") && !inQuotes) {
+      if (field || row.length) {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = "";
+      }
+    } else {
+      field += c;
     }
-    field += ch;
   }
-  out.push(field);
-  return out;
+
+  if (field || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  return rows;
 }
 
-function rarityColor(rarity) {
-  const r = (rarity || "").toLowerCase();
-  if (r.includes("uncommon"))  return "#00ff00";
-  if (r.includes("rare"))      return "#00bfff";
-  if (r.includes("epic"))      return "#ff00ff";
+function canon(h) {
+  return h.toLowerCase().replace(/[^a-z0-9]/g,"");
+}
+
+/* ================= LOAD DATA ================= */
+
+async function loadData() {
+  try {
+    const res = await fetch(MASTER_CSV_URL);
+    const text = await res.text();
+
+    const rows = parseCsv(text);
+    const headers = rows.shift().map(h => h.trim());
+    state.headers = headers;
+
+    headers.forEach((h,i) => {
+      const k = canon(h);
+      if (!(k in state.colIndex)) state.colIndex[k] = i;
+    });
+
+    for (const r of rows) {
+      const name = r[state.colIndex.name];
+      if (!name) continue;
+
+      const enabledRaw = (r[state.colIndex.enabled] || "").toLowerCase().trim();
+      if (["false","0","no"].includes(enabledRaw)) continue;
+
+      const valueRaw = r[state.colIndex.value] || "";
+      const valueNum = Number(valueRaw.replace(/,/g,"")) || 0;
+
+      const item = {
+        name,
+        apiId: r[state.colIndex.apiid] || "",
+        rarity: r[state.colIndex.rarity] || "",
+        valueNum,
+        valueRaw,
+        itemType: (r[state.colIndex.itemtype] || "").toLowerCase(),
+        notes: r[state.colIndex.notes] || "",
+        raw: r
+      };
+
+      state.items.push(item);
+      state.byName.set(name.toLowerCase(), item);
+    }
+
+    state.loaded = true;
+    document.getElementById("status").textContent = "Loaded";
+    document.getElementById("status").className = "status loaded";
+    setTimeout(() => document.getElementById("status").textContent = "", 5000);
+
+  } catch (e) {
+    document.getElementById("status").textContent = "Error loading data";
+    document.getElementById("status").className = "status error";
+    console.error(e);
+  }
+}
+
+/* ================= RENDER ================= */
+
+function rarityColor(r) {
+  r = r.toLowerCase();
   if (r.includes("legendary")) return "#ffd700";
-  return "#ffffff";
+  if (r.includes("epic")) return "#ff00ff";
+  if (r.includes("rare")) return "#00bfff";
+  if (r.includes("uncommon")) return "#00ff00";
+  return "#fff";
 }
 
-function priceColor(valueNum) {
-  const n = Number(valueNum) || 0;
-  if (n <= 1000)  return "#ffffff";
-  if (n <= 2000)  return "#00ff00";
-  if (n <= 5000)  return "#ff69b4";
+function priceColor(v) {
+  if (v <= 1000) return "#fff";
+  if (v <= 2000) return "#00ff00";
+  if (v <= 5000) return "#ff69b4";
   return "#ffd700";
 }
 
-/**
- * Parse numeric cell safely:
- *  - Keep the raw text
- *  - Try to parse a number after removing commas and spaces
- *  - If parsing fails, num = 0 but raw is preserved
- */
-function parseNumericCell(raw) {
-  const valueRaw = (raw || "").trim();
-  if (!valueRaw) {
-    return { num: 0, raw: "" };
-  }
+function render(items) {
+  const out = document.getElementById("result");
+  out.innerHTML = "";
 
-  const cleaned = valueRaw.replace(/,/g, "").replace(/\s+/g, "");
-  const num = Number(cleaned);
-  if (isNaN(num)) {
-    return { num: 0, raw: valueRaw };
-  }
-  return { num, raw: valueRaw };
-}
+  for (const it of items) {
+    const a = document.createElement("div");
+    a.className = "item";
 
-function parseRecycleEntry(entry) {
-  if (!entry) return null;
-  const trimmed = entry.trim();
-  if (!trimmed) return null;
-
-  const m = trimmed.match(/^\s*(\d+)\s*x?\s*(.+)$/i);
-  if (!m) {
-    return { qty: null, itemName: trimmed };
-  }
-  return {
-    qty: parseInt(m[1], 10),
-    itemName: m[2].trim()
-  };
-}
-
-function isDisabledConfig(val) {
-  if (!val) return false;
-  const v = val.toLowerCase();
-  return v === "0" || v === "no" || v === "false" || v === "hide" || v === "off";
-}
-
-function isColVisible(canonical) {
-  const idx = state.colIndex[canonical];
-  if (idx == null) return true; // if we can't find it, default to visible
-  return !!state.columnVisibility[idx];
-}
-
-/**
- * Consider a value "meaningful" if:
- *  - it is not null/undefined
- *  - trimmed string is not empty
- *  - trimmed string is not exactly "0"
- */
-function hasMeaningfulValue(val) {
-  if (val == null) return false;
-  const s = String(val).trim();
-  if (!s) return false;
-  if (s === "0") return false;
-  return true;
-}
-
-/**
- * Is this item's item_type one of the hidden categories (weapon, mod, etc)?
- */
-function isHiddenType(item) {
-  const t = normalizeName(item.itemType);
-  return HIDDEN_ITEM_TYPES.has(t);
-}
-
-/**
- * Load status indicator helper
- */
-let loadStatusHideTimer = null;
-
-function setLoadStatus(stateName, text) {
-  if (!dom.loadStatus) return;
-
-  if (loadStatusHideTimer) {
-    clearTimeout(loadStatusHideTimer);
-    loadStatusHideTimer = null;
-  }
-
-  dom.loadStatus.textContent = text;
-  dom.loadStatus.classList.remove("status-loading","status-loaded","status-error");
-  dom.loadStatus.style.visibility = "visible";
-
-  if (stateName === "loading") {
-    dom.loadStatus.classList.add("status-loading");
-  } else if (stateName === "loaded") {
-    dom.loadStatus.classList.add("status-loaded");
-    // Auto-hide "Loaded" after 5 seconds
-    loadStatusHideTimer = setTimeout(() => {
-      dom.loadStatus.textContent = "";
-      dom.loadStatus.classList.remove("status-loaded");
-      dom.loadStatus.style.visibility = "hidden";
-    }, 5000);
-  } else if (stateName === "error") {
-    dom.loadStatus.classList.add("status-error");
+    a.innerHTML = `
+      <div class="item-title">
+        <a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank"
+           style="color:${rarityColor(it.rarity)}">${it.name}</a>
+        <span class="value" style="color:${priceColor(it.valueNum)}">
+          ${it.valueRaw || it.valueNum}
+        </span>
+        <button class="full-btn" data-name="${it.name}">Full Info</button>
+      </div>
+      ${it.notes ? `<div class="notes"><strong>Notes:</strong> ${it.notes}</div>` : ""}
+      <hr>
+    `;
+    out.appendChild(a);
   }
 }
 
-/**
- * DATA LOADING
- */
+/* ================= UI ================= */
 
-async function init() {
-  attachEventHandlers();
-  loadData(false);
-}
+document.getElementById("search").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  if (!q) return (document.getElementById("result").innerHTML = "");
+  render(state.items.filter(i => i.name.toLowerCase().includes(q)));
+});
 
-async function loadData(isRetry) {
-  try {
-    if (isRetry) {
-      setLoadStatus("loading", "Retrying…");
-      dom.result.textContent = "Retrying data load…";
-    } else {
-      setLoadStatus("loading", "Loading…");
-      dom.result.textContent = "Loading item data…";
-    }
+document.getElementById("clear-search").onclick = () => {
+  document.getElementById("search").value = "";
+  document.getElementById("result").innerHTML = "";
+};
 
-    const masterCsv = await fetchTextSafe(MASTER_CSV_URL);
-    if (!masterCsv) {
-      throw new Error("Failed to load Items_Master CSV (empty response).");
-    }
+document.getElementById("showAll").onclick = () => {
+  document.getElementById("filters").style.display = "flex";
+  render([...state.items].sort((a,b) => b.valueNum - a.valueNum));
+};
 
-    parseItemsMasterCsv(masterCsv);
-
-    if (!state.items.length) {
-      // Treat "0 enabled items" as a load error so retry logic can kick in.
-      throw new Error("Parsed 0 enabled items from Items_Master.");
-    }
-
-    state.dataLoaded = true;
-    dom.result.textContent = "";
-    setLoadStatus("loaded", "Loaded");
-  } catch (err) {
-    console.error("loadData error:", err);
-    dom.result.innerHTML =
-      '<div class="error">Error loading data from Items_Master CSV. Check the published URL or try again later.</div>';
-    setLoadStatus("error", "Error loading data");
-
-    // Soft retry once after 10 seconds (no page reload)
-    if (!hasRetriedLoad) {
-      hasRetriedLoad = true;
-      setTimeout(() => {
-        loadData(true);
-      }, 10000);
-    }
-  }
-}
-
-async function fetchTextSafe(url) {
-  if (!url) return null;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.error("fetchTextSafe: non-OK HTTP", res.status, url);
-      return null;
-    }
-    return res.text();
-  } catch (e) {
-    console.error("fetchTextSafe: network error", e);
-    return null;
-  }
-}
-
-/**
- * Parse Items_Master CSV into state.items.
- * Uses:
- *  - header row (row 1) for column names
- *  - optional CONFIG row (row 2) for per-column visibility in Full Info
- */
-function parseItemsMasterCsv(csvText) {
-  const rows = csvText.replace(/\r/g, "").split("\n");
-  if (!rows.length) return;
-
-  const headerFields = csvSplit(rows[0]).map(h => h.trim());
-  console.log("Items_Master header row (raw):", headerFields);
-
-  // Map canonical header -> FIRST index (so "value" resolves to the earliest value column)
-  const colIndex = {};
-  headerFields.forEach((h, i) => {
-    if (!h) return;
-    const key = canonicalKey(h);
-    if (!key) return;
-    if (colIndex[key] == null) {
-      colIndex[key] = i;
-    }
-  });
-  console.log("Items_Master header index (canonical):", colIndex);
-
-  state.masterHeaders = headerFields;
-  state.colIndex = colIndex;
-  state.columnVisibility = headerFields.map(() => true); // default: all visible in Full Info
-
-  function getField(fields, logicalKey) {
-    const idx = colIndex[logicalKey];
-    return idx == null ? "" : (fields[idx] || "");
-  }
-
-  let startRow = 1;
-
-  // Optional CONFIG row
-  if (rows.length > 1) {
-    const cfgFields = csvSplit(rows[1]);
-    let cfgName = "";
-    const nameIdx = colIndex["name"];
-    if (nameIdx != null) {
-      cfgName = (cfgFields[nameIdx] || "").trim();
-    } else if (cfgFields.length) {
-      cfgName = cfgFields[0].trim();
-    }
-
-    if (cfgName && canonicalKey(cfgName) === "config") {
-      // Per-column visibility: any "0/no/false/hide/off" hides that column in Full Info
-      state.columnVisibility = headerFields.map((_, i) => {
-        const v = (cfgFields[i] || "").trim();
-        return !isDisabledConfig(v);
-      });
-      startRow = 2;
-    }
-  }
-
-  const items = [];
-  state.itemByName.clear();
-
-  for (let i = startRow; i < rows.length; i++) {
-    const row = rows[i];
-    if (!row.trim()) continue;
-
-    const fields = csvSplit(row);
-
-    const name = getField(fields, "name").trim();
-    if (!name) continue;
-
-    const apiId        = getField(fields, "apiid").trim() || null;
-    const rarity       = getField(fields, "rarity").trim();
-    const valueStrRaw  = getField(fields, "value").trim();
-    const numeric      = parseNumericCell(valueStrRaw);
-
-    const itemType     = getField(fields, "itemtype").trim();
-    const workbench    = getField(fields, "workbench").trim();
-    const lootArea     = getField(fields, "lootarea").trim();
-    const subcategory  = getField(fields, "subcategory").trim();
-    const loadoutSlots = getField(fields, "loadoutslots").trim();
-    const recycle1     = getField(fields, "recycle1").trim();
-    const recycle2     = getField(fields, "recycle2").trim();
-    const salvage1     = getField(fields, "salvage1").trim();
-    const salvage2     = getField(fields, "salvage2").trim();
-    const notes        = getField(fields, "notes").trim();
-    const enabledRaw   = getField(fields, "enabled").trim();
-    const quest1       = getField(fields, "quest1").trim();
-    const quest2       = getField(fields, "quest2").trim();
-    const quest3       = getField(fields, "quest3").trim();
-    const description  = getField(fields, "description").trim();
-    const ammoType     = getField(fields, "ammotype").trim();
-    const icon         = getField(fields, "icon").trim();
-    const flavorText   = getField(fields, "flavortext").trim();
-
-    const enabled =
-      enabledRaw === "" ||
-      !["false", "0", "no"].includes(enabledRaw.toLowerCase());
-
-    const manualQuestNames = [quest1, quest2, quest3].filter(q => q);
-
-    const item = {
-      apiId,
-      name,
-      rarity,
-      valueNum: numeric.num,
-      valueRaw: numeric.raw,
-      itemType,
-      workbench,
-      lootArea,
-      subcategory,
-      loadoutSlots,
-      recycle1,
-      recycle2,
-      salvage1,
-      salvage2,
-      notes,
-      enabled,
-      manualQuestNames,
-      description,
-      ammoType,
-      icon,
-      flavorText,
-      rawRow: fields // full raw row for generic Full Info dump
-    };
-
-    state.itemByName.set(normalizeName(name), item);
-    if (enabled) {
-      items.push(item);
-    }
-  }
-
-  state.items = items;
-  console.log("Parsed items from Items_Master (enabled):", state.items.length);
-}
-
-/**
- * IMPORTANT NOTES LOADING
- */
-
-async function ensureNotesLoaded() {
-  if (state.notesLoaded || state.notesError || !NOTES_CSV_URL) return;
-
-  try {
-    const text = await fetchTextSafe(NOTES_CSV_URL);
-    if (!text) {
-      state.notesError = "Error loading Important Notes from the spreadsheet.";
-      return;
-    }
-
-    const rows = text.replace(/\r/g, "").split("\n");
-    state.importantNotes = [];
-
-    for (const row of rows) {
-      if (!row.trim()) continue;
-      const fields = csvSplit(row);
-      const note = (fields[0] || "").trim();
-      if (note) {
-        state.importantNotes.push(note);
-      }
-    }
-
-    state.notesLoaded = true;
-  } catch (err) {
-    console.error(err);
-    state.notesError = "Error loading Important Notes from the spreadsheet.";
-  }
-}
-
-function renderNotesPanel() {
-  if (!NOTES_CSV_URL) {
-    dom.notesContent.innerHTML =
-      '<div class="error">NOTES_CSV_URL is not set yet. Publish your "Important Notes" tab and paste its CSV link into the script.</div>';
-    return;
-  }
-
-  if (state.notesError) {
-    dom.notesContent.innerHTML = '<div class="error">' + escapeHtml(state.notesError) + '</div>';
-    return;
-  }
-
-  if (!state.importantNotes.length) {
-    dom.notesContent.textContent = "No notes found.";
-    return;
-  }
-
-  const itemsHtml = state.importantNotes
-    .map(n => '<div class="note-item">• ' + escapeHtml(n) + '</div>')
-    .join("");
-  dom.notesContent.innerHTML = itemsHtml;
-}
-
-/**
- * SEARCH + RENDER (compact view)
- */
-
-let searchDebounceTimer = null;
-
-function runSearch(queryRaw) {
-  const query = queryRaw.trim();
-  const qNorm = normalizeName(query);
-
-  dom.result.innerHTML = "";
-
-  if (!state.dataLoaded) {
-    dom.result.textContent = "Still loading data…";
-    return;
-  }
-
-  if (!qNorm) {
-    dom.result.textContent = "";
-    return;
-  }
-
-  const matches = state.items.filter(it =>
-    normalizeName(it.name).includes(qNorm)
-  );
-
-  if (!matches.length) {
-    dom.result.innerHTML = "<div>No match</div>";
-    return;
-  }
-
-  matches.sort((a, b) => {
-    const aName = normalizeName(a.name);
-    const bName = normalizeName(b.name);
-    const aStarts = aName.startsWith(qNorm) ? 0 : 1;
-    const bStarts = bName.startsWith(qNorm) ? 0 : 1;
-    if (aStarts !== bStarts) return aStarts - bStarts;
-    return aName.localeCompare(bName);
-  });
-
-  let html = "";
-  for (const item of matches) {
-    html += renderItemBlock(item);
-  }
-  dom.result.innerHTML = html;
-}
-
-/**
- * "Show All" view – with modes:
- *  - "default": show all enabled items EXCEPT the hidden types
- *  - "weapon"/"modification"/"blueprint"/"key"/"quest item"/"misc":
- *    show ONLY that category
- */
-function showAllItemsByValue(mode) {
-  if (!state.dataLoaded) {
-    dom.result.textContent = "Still loading data…";
-    return;
-  }
-
-  let items = [...state.items];
-
-  if (mode === "default") {
-    items = items.filter(it => !isHiddenType(it));
-  } else if (mode && mode !== "default") {
-    const targetType = mode;
-    items = items.filter(it => normalizeName(it.itemType) === targetType);
-  }
-
-  items.sort((a, b) => (b.valueNum || 0) - (a.valueNum || 0));
-
-  dom.search.value = "";
-  setInstructionsVisible(false);
-  setTopButtonsVisible(true);
-
-  if (!items.length) {
-    dom.result.innerHTML = "<div>No items.</div>";
-    return;
-  }
-
-  let html = "";
-  for (const item of items) {
-    html += renderItemBlock(item);
-  }
-  dom.result.innerHTML = html;
-}
-
-function renderItemBlock(item) {
-  const rarityClr = rarityColor(item.rarity);
-
-  const valueNum = item.valueNum || 0;
-  let valueText = "";
-  if (valueNum) {
-    valueText = valueNum.toLocaleString("en-US");
-  } else if (item.valueRaw) {
-    valueText = item.valueRaw;
-  }
-  const valueClr = priceColor(valueNum);
-
-  const itemUrl = item.apiId
-    ? "https://metaforge.app/arc-raiders/database/item/" + encodeURIComponent(item.apiId)
-    : null;
-
-  const recycledFrom = findRecyclersForItem(item.name);
-  const manualQuestTagHtml = renderManualQuestTags(item.manualQuestNames);
-
-  let html = '<div class="item-block">';
-
-  // Title line
-  html += '<div class="item-title">';
-  let titleInner = "";
-
-  if (itemUrl) {
-    titleInner += '<a class="item-link" href="' + itemUrl +
-                  '" target="_blank" rel="noopener noreferrer">' +
-                  '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>" +
-                  "</a>";
+document.getElementById("filters").onclick = e => {
+  if (!e.target.dataset.type) return;
+  const t = e.target.dataset.type;
+  if (t === "default") {
+    render(state.items);
   } else {
-    titleInner += '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>";
+    render(state.items.filter(i => i.itemType === t));
   }
+};
 
-  if (valueText) {
-    titleInner += '<span class="item-value" style="color:' + valueClr + ';"> — ' +
-                  escapeHtml(valueText) + "</span>";
-  }
-
-  if (manualQuestTagHtml) {
-    titleInner += " " + manualQuestTagHtml;
-  }
-
-  html += titleInner;
-
-  // Full Info button
-  html += '<button type="button" class="full-item-btn" data-item-name="' +
-          escapeHtml(item.name) + '">Full Info</button>';
-
-  html += "</div>";
-
-  // Notes at top, red (compact view)
-  if (item.notes) {
-    html += '<div class="line" style="color:#ff6666;"><strong>Notes:</strong> ' +
-            escapeHtml(item.notes) + "</div>";
-  }
-
-  // Recycles To
-  const recToParts = [];
-  if (item.recycle1) recToParts.push(item.recycle1);
-  if (item.recycle2) recToParts.push(item.recycle2);
-
-  if (recToParts.length) {
-    html += '<div class="line">Recycles To: ' +
-            recToParts.map(escapeHtml).join(", ") + "</div>";
-  }
-
-  // Recycled From
-  const recycledFromList = recycledFrom;
-  if (recycledFromList.length) {
-    html += '<div class="line" style="color:#ffa500;">Recycled From: ' +
-            '<span class="line-small">R = Recycled, S = Salvaged</span>' +
-            "</div>";
-
-    for (const src of recycledFromList) {
-      const rarityClrSrc = rarityColor(src.rarity);
-
-      const srcValueNum = src.valueNum || 0;
-      let srcValueText = "";
-      if (srcValueNum) {
-        srcValueText = srcValueNum.toLocaleString("en-US");
-      } else if (src.valueRaw) {
-        srcValueText = src.valueRaw;
-      }
-      const srcValueColor = priceColor(srcValueNum);
-
-      const srcManualQuestTag = renderManualQuestTags(src.manualQuestNames);
-
-      const rsParts = [];
-      if (src.qty !== null) rsParts.push("R-" + src.qty);
-      if (src.salvageQty != null) rsParts.push("S-" + src.salvageQty);
-
-      html += '<div class="line">';
-      html += '<span class="rarity-prefix" style="color:' + rarityClrSrc + ';">-</span>';
-      html += '<span style="color:#ffffff; font-weight:bold;">' +
-              escapeHtml(src.name) + "</span>";
-      if (rsParts.length) {
-        html += ' <span class="line-small">' + rsParts.join(" · ") + "</span>";
-      }
-      if (srcValueText) {
-        html += ' — <span style="color:' + srcValueColor +
-                '; font-weight:bold;">' + escapeHtml(srcValueText) + "</span>";
-      }
-      if (srcManualQuestTag) {
-        html += " " + srcManualQuestTag;
-      }
-      html += "</div>";
-    }
-  }
-
-  html += "<hr></div>";
-  return html;
-}
-
-function renderManualQuestTags(questNames) {
-  if (!questNames || !questNames.length) return "";
-  const parts = questNames.map(q => escapeHtml(q));
-  return '<span class="quest-tag">[Needed for: ' + parts.join(", ") + "]</span>";
-}
-
-function findRecyclersForItem(targetName) {
-  const targetKey = normalizeName(targetName);
-  const results = [];
-
-  for (const item of state.items) {
-    const entries = [item.recycle1, item.recycle2];
-    let totalQty = 0;
-    let hasMatch = false;
-
-    for (const entry of entries) {
-      const parsed = parseRecycleEntry(entry);
-      if (!parsed) continue;
-      const entryKey = normalizeName(parsed.itemName);
-      if (!entryKey || entryKey !== targetKey) continue;
-
-      hasMatch = true;
-      if (parsed.qty) totalQty += parsed.qty;
-    }
-
-    if (hasMatch) {
-      results.push({
-        name: item.name,
-        rarity: item.rarity,
-        valueNum: item.valueNum,
-        valueRaw: item.valueRaw,
-        manualQuestNames: item.manualQuestNames,
-        qty: totalQty || null,
-        salvageQty: null
-      });
-    }
-  }
-
-  return results;
-}
-
-/**
- * FULL ITEM LOOKUP
- */
-
-function fullItemLookupByName(name) {
-  if (!state.dataLoaded) {
-    dom.result.textContent = "Still loading data…";
-    return;
-  }
-
-  const key = normalizeName(name);
-  const item = state.itemByName.get(key);
-
-  if (!item) {
-    dom.result.innerHTML =
-      '<div class="error">No item found in Items_Master for "' + escapeHtml(name) + '".</div>';
-    return;
-  }
-
-  dom.result.innerHTML = renderFullItemDetailsFromMaster(item);
-  setInstructionsVisible(false);
-}
-
-function renderFullItemDetailsFromMaster(item) {
-  const rarityClr = rarityColor(item.rarity);
-
-  const valueNum = item.valueNum || 0;
-  let valueText = "";
-  if (valueNum) {
-    valueText = valueNum.toLocaleString("en-US");
-  } else if (item.valueRaw) {
-    valueText = item.valueRaw;
-  }
-  const valueClr = priceColor(valueNum);
-
-  const itemUrl = item.apiId
-    ? "https://metaforge.app/arc-raiders/database/item/" + encodeURIComponent(item.apiId)
-    : null;
-
-  const headers = state.masterHeaders;
-  const colVis  = state.columnVisibility;
-
-  let html = '<div class="item-block">';
-
-  // Title
-  html += '<div class="item-title">';
-  if (itemUrl) {
-    html += '<a class="item-link" href="' + itemUrl +
-            '" target="_blank" rel="noopener noreferrer">' +
-            '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>" +
-            "</a>";
-  } else {
-    html += '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>";
-  }
-  if (valueText) {
-    html += '<span class="item-value" style="color:' + valueClr + ';"> — ' +
-            escapeHtml(valueText) + "</span>";
-  }
-  html += "</div>";
-
-  // Notes at top, red
-  if (isColVisible("notes") && hasMeaningfulValue(item.notes)) {
-    html += '<div class="line-small" style="color:#ff6666;"><strong>Notes:</strong> ' +
-            escapeHtml(item.notes) + "</div>";
-  }
-
-  if (isColVisible("apiid") && hasMeaningfulValue(item.apiId)) {
-    html += '<div class="line-small"><strong>API ID:</strong> ' +
-            escapeHtml(String(item.apiId).trim()) + "</div>";
-  }
-  if (isColVisible("rarity") && hasMeaningfulValue(item.rarity)) {
-    html += '<div class="line-small"><strong>Rarity:</strong> ' +
-            escapeHtml(item.rarity) + "</div>";
-  }
-  if (isColVisible("itemtype") && hasMeaningfulValue(item.itemType)) {
-    html += '<div class="line-small"><strong>Type:</strong> ' +
-            escapeHtml(item.itemType) + "</div>";
-  }
-  if (isColVisible("workbench") && hasMeaningfulValue(item.workbench)) {
-    html += '<div class="line-small"><strong>Workbench:</strong> ' +
-            escapeHtml(item.workbench) + "</div>";
-  }
-  if (isColVisible("lootarea") && hasMeaningfulValue(item.lootArea)) {
-    html += '<div class="line-small"><strong>Loot Area:</strong> ' +
-            escapeHtml(item.lootArea) + "</div>";
-  }
-  if (isColVisible("subcategory") && hasMeaningfulValue(item.subcategory)) {
-    html += '<div class="line-small"><strong>Subcategory:</strong> ' +
-            escapeHtml(item.subcategory) + "</div>";
-  }
-  if (isColVisible("loadoutslots") && hasMeaningfulValue(item.loadoutSlots)) {
-    html += '<div class="line-small"><strong>Loadout Slots:</strong> ' +
-            escapeHtml(item.loadoutSlots) + "</div>";
-  }
-  if (isColVisible("ammotype") && hasMeaningfulValue(item.ammoType)) {
-    html += '<div class="line-small"><strong>Ammo Type:</strong> ' +
-            escapeHtml(item.ammoType) + "</div>";
-  }
-  if (isColVisible("description") && hasMeaningfulValue(item.description)) {
-    html += '<div class="line-small"><strong>Description:</strong> ' +
-            escapeHtml(item.description) + "</div>";
-  }
-  if (isColVisible("flavortext") && hasMeaningfulValue(item.flavorText)) {
-    html += '<div class="line-small"><strong>Flavor Text:</strong> ' +
-            escapeHtml(item.flavorText) + "</div>";
-  }
-  if (isColVisible("icon") && hasMeaningfulValue(item.icon)) {
-    html += '<div class="line-small"><strong>Icon:</strong> ' +
-            '<a href="' + escapeHtml(item.icon) +
-            '" target="_blank" rel="noopener noreferrer">Open icon</a></div>';
-  }
-
-  // Recycles / Salvage combined
-  const showRecycle =
-    (isColVisible("recycle1") || isColVisible("recycle2")) &&
-    (hasMeaningfulValue(item.recycle1) || hasMeaningfulValue(item.recycle2));
-
-  if (showRecycle) {
-    const recParts = [];
-    if (hasMeaningfulValue(item.recycle1)) recParts.push(item.recycle1);
-    if (hasMeaningfulValue(item.recycle2)) recParts.push(item.recycle2);
-    if (recParts.length) {
-      html += '<div class="line-small"><strong>Recycles To:</strong> ' +
-              recParts.map(escapeHtml).join(", ") + "</div>";
-    }
-  }
-
-  const showSalvage =
-    (isColVisible("salvage1") || isColVisible("salvage2")) &&
-    (hasMeaningfulValue(item.salvage1) || hasMeaningfulValue(item.salvage2));
-
-  if (showSalvage) {
-    const salvParts = [];
-    if (hasMeaningfulValue(item.salvage1)) salvParts.push(item.salvage1);
-    if (hasMeaningfulValue(item.salvage2)) salvParts.push(item.salvage2);
-    if (salvParts.length) {
-      html += '<div class="line-small"><strong>Salvages To:</strong> ' +
-              salvParts.map(escapeHtml).join(", ") + "</div>";
-    }
-  }
-
-  const showQuests =
-    (isColVisible("quest1") || isColVisible("quest2") || isColVisible("quest3")) &&
-    item.manualQuestNames.length;
-
-  if (showQuests) {
-    html += '<div class="line-small"><strong>Needed for:</strong> ' +
-            escapeHtml(item.manualQuestNames.join(", ")) + "</div>";
-  }
-
-  // Generic dump for ALL remaining columns
-  const skipCanonicals = new Set([
-    "apiid",
-    "name",
-    "rarity",
-    "value",
-    "itemtype",
-    "workbench",
-    "lootarea",
-    "subcategory",
-    "loadoutslots",
-    "recycle1",
-    "recycle2",
-    "salvage1",
-    "salvage2",
-    "notes",
-    "enabled",
-    "quest1",
-    "quest2",
-    "quest3",
-    "description",
-    "ammotype",
-    "icon",
-    "flavortext"
-  ]);
-
-  const row = item.rawRow || [];
-
-  for (let i = 0; i < headers.length; i++) {
-    const header = headers[i];
-    if (!header) continue;
-
-    if (!colVis[i]) continue;
-
-    const canon = canonicalKey(header);
-    if (skipCanonicals.has(canon)) continue;
-
-    const val = row[i];
-    if (!hasMeaningfulValue(val)) continue;
-
-    html += '<div class="line-small"><strong>' +
-            escapeHtml(header) + ':</strong> ' +
-            escapeHtml(String(val).trim()) + "</div>";
-  }
-
-  html += "</div>";
-  return html;
-}
-
-/**
- * UI HANDLERS
- */
-
-function attachEventHandlers() {
-  dom.search.addEventListener("input", () => {
-    const value = dom.search.value;
-
-    if (!value.trim()) {
-      dom.result.textContent = "";
-      setTopButtonsVisible(true);
-      setInstructionsVisible(false);
-      return;
-    }
-
-    setTopButtonsVisible(false);
-    setInstructionsVisible(true);
-
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
-      runSearch(value);
-    }, 120);
-  });
-
-  dom.search.addEventListener("focus", () => {
-    if (dom.search.value) {
-      dom.search.value = "";
-    }
-    dom.result.textContent = "";
-    setTopButtonsVisible(true);
-    setInstructionsVisible(false);
-  });
-
-  dom.clearSearch.addEventListener("click", () => {
-    dom.search.value = "";
-    dom.search.focus();
-    dom.result.textContent = "";
-    setTopButtonsVisible(true);
-    setInstructionsVisible(false);
-  });
-
-  dom.notesToggle.addEventListener("click", async () => {
-    const isHidden = dom.notesPanel.classList.contains("hidden");
-    if (isHidden) {
-      await ensureNotesLoaded();
-      renderNotesPanel();
-      dom.notesPanel.classList.remove("hidden");
-    } else {
-      dom.notesPanel.classList.add("hidden");
-    }
-  });
-
-  // Show all (default: hide Weapon/Mod/Blueprint/Key/Quest/Misc,
-  // and reveal the under-search category filter buttons)
-  dom.showAllBtn.addEventListener("click", () => {
-    showAllItemsByValue("default");
-    dom.filtersRow.classList.remove("hidden");
-  });
-
-  // Category filter buttons
-  dom.filterDefaultBtn.addEventListener("click", () => {
-    showAllItemsByValue("default");
-  });
-  dom.filterWeaponBtn.addEventListener("click", () => {
-    showAllItemsByValue("weapon");
-  });
-  dom.filterModsBtn.addEventListener("click", () => {
-    showAllItemsByValue("modification");
-  });
-  dom.filterBlueprintBtn.addEventListener("click", () => {
-    showAllItemsByValue("blueprint");
-  });
-  dom.filterKeyBtn.addEventListener("click", () => {
-    showAllItemsByValue("key");
-  });
-  dom.filterQuestBtn.addEventListener("click", () => {
-    showAllItemsByValue("quest item");
-  });
-  dom.filterMiscBtn.addEventListener("click", () => {
-    showAllItemsByValue("misc");
-  });
-
-  // Full Info button (event delegation)
-  dom.result.addEventListener("click", (event) => {
-    const btn = event.target.closest(".full-item-btn");
-    if (!btn) return;
-    const itemName = btn.getAttribute("data-item-name") || "";
-    fullItemLookupByName(itemName);
-  });
-}
-
-function setTopButtonsVisible(visible) {
-  if (visible) dom.topButtons.classList.remove("hidden");
-  else dom.topButtons.classList.add("hidden");
-}
-
-function setInstructionsVisible(visible) {
-  if (visible) dom.instructions.classList.remove("hidden");
-  else dom.instructions.classList.add("hidden");
-}
-
-/**
- * BOOTSTRAP
- */
-init();
+loadData();
 </script>
+
 </body>
 </html>
