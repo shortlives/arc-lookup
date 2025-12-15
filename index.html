@@ -17,6 +17,16 @@
       margin:0 auto;
     }
 
+    /* Load status indicator (top-left) */
+    .status-indicator {
+      font-size:12px;
+      font-weight:bold;
+      margin-bottom:6px;
+    }
+    .status-loading { color:#ff5555; }
+    .status-loaded  { color:#33cc66; }
+    .status-error   { color:#ff9933; }
+
     .top-buttons {
       display:flex;
       gap:10px;
@@ -226,6 +236,9 @@
   </style>
 </head>
 <body>
+  <!-- Load status indicator -->
+  <div id="loadStatus" class="status-indicator status-loading">Loading…</div>
+
   <div class="top-buttons" id="topButtons">
     <a href="https://mapgenie.io/arc-raiders" target="_blank" rel="noopener noreferrer">Maps</a>
     <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit#gid=491619272"
@@ -325,6 +338,7 @@ const state = {
 
 // DOM cache
 const dom = {
+  loadStatus:       document.getElementById("loadStatus"),
   search:           document.getElementById("search"),
   clearSearch:      document.getElementById("clear-search"),
   topButtons:       document.getElementById("topButtons"),
@@ -466,7 +480,6 @@ function isColVisible(canonical) {
  *  - it is not null/undefined
  *  - trimmed string is not empty
  *  - trimmed string is not exactly "0"
- * This drives which lines appear in FULL INFO.
  */
 function hasMeaningfulValue(val) {
   if (val == null) return false;
@@ -485,10 +498,27 @@ function isHiddenType(item) {
 }
 
 /**
+ * Load status indicator helper
+ */
+function setLoadStatus(stateName, text) {
+  if (!dom.loadStatus) return;
+  dom.loadStatus.textContent = text;
+  dom.loadStatus.classList.remove("status-loading","status-loaded","status-error");
+  if (stateName === "loading") {
+    dom.loadStatus.classList.add("status-loading");
+  } else if (stateName === "loaded") {
+    dom.loadStatus.classList.add("status-loaded");
+  } else if (stateName === "error") {
+    dom.loadStatus.classList.add("status-error");
+  }
+}
+
+/**
  * DATA LOADING
  */
 
 async function init() {
+  setLoadStatus("loading", "Loading…");
   dom.result.textContent = "Loading item data…";
   attachEventHandlers();
 
@@ -500,21 +530,22 @@ async function init() {
 
     parseItemsMasterCsv(masterCsv);
 
-    console.log("Parsed items from Items_Master (enabled):", state.items.length);
-
     if (!state.items.length) {
       dom.result.innerHTML =
         '<div class="error">No enabled items parsed from Items_Master. ' +
         'Check that the published CSV is the Items_Master tab and that the "name" column is filled.</div>';
+      setLoadStatus("error", "Error loading data");
       return;
     }
 
     state.dataLoaded = true;
-    dom.result.textContent = ""; // no default hint text
+    dom.result.textContent = "";
+    setLoadStatus("loaded", "Loaded");
   } catch (err) {
     console.error(err);
     dom.result.innerHTML =
       '<div class="error">Error loading data from Items_Master CSV. Check the published URL.</div>';
+    setLoadStatus("error", "Error loading data");
   }
 }
 
@@ -540,7 +571,6 @@ function parseItemsMasterCsv(csvText) {
   if (!rows.length) return;
 
   const headerFields = csvSplit(rows[0]).map(h => h.trim());
-  console.log("Items_Master header row (raw):", headerFields);
 
   // Map canonical header -> FIRST index (so "value" resolves to the earliest value column)
   const colIndex = {};
@@ -552,7 +582,6 @@ function parseItemsMasterCsv(csvText) {
       colIndex[key] = i;
     }
   });
-  console.log("Items_Master header index (canonical, first-wins):", colIndex);
 
   state.masterHeaders = headerFields;
   state.colIndex = colIndex;
@@ -660,11 +689,6 @@ function parseItemsMasterCsv(csvText) {
   }
 
   state.items = items;
-
-  if (items.length) {
-    console.log("Sample item numeric value/valueRaw:",
-      items[0].name, items[0].valueNum, items[0].valueRaw);
-  }
 }
 
 /**
@@ -741,7 +765,7 @@ function runSearch(queryRaw) {
   }
 
   if (!qNorm) {
-    dom.result.textContent = ""; // no hint text
+    dom.result.textContent = "";
     return;
   }
 
@@ -785,7 +809,6 @@ function showAllItemsByValue(mode) {
   let items = [...state.items];
 
   if (mode === "default") {
-    // Default = everything except hidden categories
     items = items.filter(it => !isHiddenType(it));
   } else if (mode && mode !== "default") {
     const targetType = mode;
@@ -796,7 +819,7 @@ function showAllItemsByValue(mode) {
 
   dom.search.value = "";
   setInstructionsVisible(false);
-  setTopButtonsVisible(true); // keep top controls visible
+  setTopButtonsVisible(true);
 
   if (!items.length) {
     dom.result.innerHTML = "<div>No items.</div>";
@@ -878,12 +901,13 @@ function renderItemBlock(item) {
   }
 
   // Recycled From
-  if (recycledFrom.length) {
+  const recycledFromList = recycledFrom;
+  if (recycledFromList.length) {
     html += '<div class="line" style="color:#ffa500;">Recycled From: ' +
             '<span class="line-small">R = Recycled, S = Salvaged</span>' +
             "</div>";
 
-    for (const src of recycledFrom) {
+    for (const src of recycledFromList) {
       const rarityClrSrc = rarityColor(src.rarity);
 
       const srcValueNum = src.valueNum || 0;
@@ -965,8 +989,7 @@ function findRecyclersForItem(targetName) {
 }
 
 /**
- * FULL ITEM LOOKUP (uses all columns, controlled by CONFIG row,
- * and hides any lines whose value is empty or "0")
+ * FULL ITEM LOOKUP
  */
 
 function fullItemLookupByName(name) {
@@ -1025,13 +1048,12 @@ function renderFullItemDetailsFromMaster(item) {
   }
   html += "</div>";
 
-  // Notes at top, red (honor column visibility + hide if blank/"0")
+  // Notes at top, red
   if (isColVisible("notes") && hasMeaningfulValue(item.notes)) {
     html += '<div class="line-small" style="color:#ff6666;"><strong>Notes:</strong> ' +
             escapeHtml(item.notes) + "</div>";
   }
 
-  // Core meta lines, respecting column visibility and meaningful value (not empty/"0")
   if (isColVisible("apiid") && hasMeaningfulValue(item.apiId)) {
     html += '<div class="line-small"><strong>API ID:</strong> ' +
             escapeHtml(String(item.apiId).trim()) + "</div>";
@@ -1040,13 +1062,10 @@ function renderFullItemDetailsFromMaster(item) {
     html += '<div class="line-small"><strong>Rarity:</strong> ' +
             escapeHtml(item.rarity) + "</div>";
   }
-
-  // Item category (Type): hide if blank or "0"
   if (isColVisible("itemtype") && hasMeaningfulValue(item.itemType)) {
     html += '<div class="line-small"><strong>Type:</strong> ' +
             escapeHtml(item.itemType) + "</div>";
   }
-
   if (isColVisible("workbench") && hasMeaningfulValue(item.workbench)) {
     html += '<div class="line-small"><strong>Workbench:</strong> ' +
             escapeHtml(item.workbench) + "</div>";
@@ -1081,7 +1100,7 @@ function renderFullItemDetailsFromMaster(item) {
             '" target="_blank" rel="noopener noreferrer">Open icon</a></div>';
   }
 
-  // Recycles / Salvage combined lines, honoring visibility + meaningful values
+  // Recycles / Salvage combined
   const showRecycle =
     (isColVisible("recycle1") || isColVisible("recycle2")) &&
     (hasMeaningfulValue(item.recycle1) || hasMeaningfulValue(item.recycle2));
@@ -1151,11 +1170,10 @@ function renderFullItemDetailsFromMaster(item) {
     const header = headers[i];
     if (!header) continue;
 
-    // Column visibility from CONFIG row
     if (!colVis[i]) continue;
 
     const canon = canonicalKey(header);
-    if (skipCanonicals.has(canon)) continue; // already handled above
+    if (skipCanonicals.has(canon)) continue;
 
     const val = row[i];
     if (!hasMeaningfulValue(val)) continue;
@@ -1228,7 +1246,7 @@ function attachEventHandlers() {
     dom.filtersRow.classList.remove("hidden");
   });
 
-  // Category filter buttons: each shows only that category at a time
+  // Category filter buttons
   dom.filterDefaultBtn.addEventListener("click", () => {
     showAllItemsByValue("default");
   });
