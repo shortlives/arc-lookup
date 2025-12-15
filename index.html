@@ -211,6 +211,8 @@
     <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit#gid=491619272"
        target="_blank" rel="noopener noreferrer">Spreadsheet</a>
     <button type="button" id="showAllBtn">Show All (High → Low)</button>
+    <button type="button" id="showHiddenBtn">Show Weapon/Mod/BP/Key/Quest/Misc Only</button>
+    <button type="button" id="showDefaultBtn" class="hidden">Back to Default</button>
     <button type="button" id="notesToggle">Important Notes</button>
   </div>
 
@@ -265,6 +267,19 @@ const NOTES_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv";
 
 /**
+ * Item types to hide by default in "Show All" view,
+ * but expose via "Show Weapon/Mod/BP/Key/Quest/Misc Only".
+ */
+const HIDDEN_ITEM_TYPES = new Set([
+  "weapon",
+  "modifications",
+  "blueprint",
+  "key",
+  "quest item",
+  "misc"
+]);
+
+/**
  * GLOBAL STATE
  */
 const state = {
@@ -289,7 +304,9 @@ const dom = {
   notesPanel:    document.getElementById("notesPanel"),
   notesContent:  document.getElementById("notesContent"),
   notesToggle:   document.getElementById("notesToggle"),
-  showAllBtn:    document.getElementById("showAllBtn")
+  showAllBtn:    document.getElementById("showAllBtn"),
+  showHiddenBtn: document.getElementById("showHiddenBtn"),
+  showDefaultBtn:document.getElementById("showDefaultBtn")
 };
 
 /**
@@ -407,6 +424,14 @@ function isColVisible(canonical) {
   const idx = state.colIndex[canonical];
   if (idx == null) return true; // if we can't find it, default to visible
   return !!state.columnVisibility[idx];
+}
+
+/**
+ * Is this item's item_type one of the hidden categories (weapon, mod, etc)?
+ */
+function isHiddenType(item) {
+  const t = normalizeName(item.itemType);
+  return HIDDEN_ITEM_TYPES.has(t);
 }
 
 /**
@@ -545,8 +570,7 @@ function parseItemsMasterCsv(csvText) {
     const description  = getField(fields, "description").trim();
     const ammoType     = getField(fields, "ammotype").trim();
     const icon         = getField(fields, "icon").trim();
-
-    const flavorText   = getField(fields, "flavortext").trim(); // canonical "flavor_text" -> "flavortext"
+    const flavorText   = getField(fields, "flavortext").trim(); // canonical flavor_text -> flavortext
 
     const enabled =
       enabledRaw === "" ||
@@ -696,25 +720,39 @@ function runSearch(queryRaw) {
   dom.result.innerHTML = html;
 }
 
-function showAllItemsByValue() {
+/**
+ * "Show All" view – with modes:
+ *  - "default": show all enabled items EXCEPT the hidden types
+ *  - "hidden": show ONLY items whose type is in the hidden list
+ */
+function showAllItemsByValue(mode) {
   if (!state.dataLoaded) {
     dom.result.textContent = "Still loading data…";
     return;
   }
 
-  const sorted = [...state.items].sort((a, b) => (b.valueNum || 0) - (a.valueNum || 0));
+  let items = [...state.items];
+
+  if (mode === "hidden") {
+    items = items.filter(it => isHiddenType(it));
+  } else {
+    // default mode: hide the listed categories
+    items = items.filter(it => !isHiddenType(it));
+  }
+
+  items.sort((a, b) => (b.valueNum || 0) - (a.valueNum || 0));
 
   dom.search.value = "";
   setInstructionsVisible(false);
   setTopButtonsVisible(true); // keep top controls visible
 
-  if (!sorted.length) {
+  if (!items.length) {
     dom.result.innerHTML = "<div>No items.</div>";
     return;
   }
 
   let html = "";
-  for (const item of sorted) {
+  for (const item of items) {
     html += renderItemBlock(item);
   }
   dom.result.innerHTML = html;
@@ -949,10 +987,14 @@ function renderFullItemDetailsFromMaster(item) {
     html += '<div class="line-small"><strong>Rarity:</strong> ' +
             escapeHtml(item.rarity) + "</div>";
   }
-  if (isColVisible("itemtype") && item.itemType) {
+
+  // Item category (Type): hide if blank or "0"
+  const hasCategory = item.itemType && item.itemType.trim() !== "" && item.itemType.trim() !== "0";
+  if (isColVisible("itemtype") && hasCategory) {
     html += '<div class="line-small"><strong>Type:</strong> ' +
             escapeHtml(item.itemType) + "</div>";
   }
+
   if (isColVisible("workbench") && item.workbench) {
     html += '<div class="line-small"><strong>Workbench:</strong> ' +
             escapeHtml(item.workbench) + "</div>";
@@ -1123,8 +1165,22 @@ function attachEventHandlers() {
     }
   });
 
+  // Show all (default: hide Weapons/Mods/BP/Key/Quest/Misc)
   dom.showAllBtn.addEventListener("click", () => {
-    showAllItemsByValue();
+    showAllItemsByValue("default");
+    dom.showDefaultBtn.classList.add("hidden");
+  });
+
+  // Show ONLY Weapons/Mods/BP/Key/Quest/Misc
+  dom.showHiddenBtn.addEventListener("click", () => {
+    showAllItemsByValue("hidden");
+    dom.showDefaultBtn.classList.remove("hidden");
+  });
+
+  // Back to default filtered view (non-hidden types)
+  dom.showDefaultBtn.addEventListener("click", () => {
+    showAllItemsByValue("default");
+    dom.showDefaultBtn.classList.add("hidden");
   });
 
   // Full Info button (event delegation)
