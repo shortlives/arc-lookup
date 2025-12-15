@@ -276,6 +276,25 @@ const NOTES_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=732163012&single=true&output=csv";
 
 /**
+ * FULL ITEM LOOKUP CONFIG
+ * Toggle any of these to false if you want to hide that line in the
+ * Full Item Lookup view.
+ */
+const FULL_LOOKUP_CONFIG = {
+  showId:          true,
+  showRarity:      true,
+  showType:        true,
+  showWorkbench:   true,
+  showLootArea:    true,
+  showSubcategory: true,
+  showLoadout:     true,
+  showDescription: true,
+  showFlavor:      true,
+  showStats:       true,
+  showRawJson:     true
+};
+
+/**
  * GLOBAL STATE
  */
 const state = {
@@ -950,6 +969,7 @@ function fullItemLookupByName(name) {
 
 /**
  * Render a full-detail view for a raw API item (mirrors API_Items content).
+ * Hides/shows sections based on FULL_LOOKUP_CONFIG.
  */
 function renderFullItemDetails(apiItem) {
   const rarityClr = rarityColor(apiItem.rarity);
@@ -982,33 +1002,40 @@ function renderFullItemDetails(apiItem) {
   html += "</div>";
 
   // Core meta
-  html += '<div class="line-small">ID: ' + escapeHtml(String(apiItem.id || "")) + "</div>";
-  html += '<div class="line-small">Rarity: ' + escapeHtml(apiItem.rarity || "Unknown") + "</div>";
-  html += '<div class="line-small">Type: ' + escapeHtml(apiItem.item_type || "Unknown") + "</div>";
-  if (apiItem.workbench) {
+  if (FULL_LOOKUP_CONFIG.showId) {
+    html += '<div class="line-small">ID: ' + escapeHtml(String(apiItem.id || "")) + "</div>";
+  }
+  if (FULL_LOOKUP_CONFIG.showRarity) {
+    html += '<div class="line-small">Rarity: ' + escapeHtml(apiItem.rarity || "Unknown") + "</div>";
+  }
+  if (FULL_LOOKUP_CONFIG.showType) {
+    html += '<div class="line-small">Type: ' + escapeHtml(apiItem.item_type || "Unknown") + "</div>";
+  }
+  if (FULL_LOOKUP_CONFIG.showWorkbench && apiItem.workbench) {
     html += '<div class="line-small">Workbench: ' + escapeHtml(apiItem.workbench) + "</div>";
   }
-  if (apiItem.loot_area) {
+  if (FULL_LOOKUP_CONFIG.showLootArea && apiItem.loot_area) {
     html += '<div class="line-small">Loot Area: ' + escapeHtml(apiItem.loot_area) + "</div>";
   }
-  if (apiItem.subcategory) {
+  if (FULL_LOOKUP_CONFIG.showSubcategory && apiItem.subcategory) {
     html += '<div class="line-small">Subcategory: ' + escapeHtml(apiItem.subcategory) + "</div>";
   }
-  if (apiItem.loadout_slots && apiItem.loadout_slots.length) {
+  if (FULL_LOOKUP_CONFIG.showLoadout &&
+      apiItem.loadout_slots && apiItem.loadout_slots.length) {
     html += '<div class="line-small">Loadout Slots: ' +
             escapeHtml(apiItem.loadout_slots.join(", ")) + "</div>";
   }
 
-  if (apiItem.description) {
+  if (FULL_LOOKUP_CONFIG.showDescription && apiItem.description) {
     html += '<div class="line-small"><strong>Description:</strong> ' +
             escapeHtml(apiItem.description) + "</div>";
   }
-  if (apiItem.flavor_text) {
+  if (FULL_LOOKUP_CONFIG.showFlavor && apiItem.flavor_text) {
     html += '<div class="line-small"><strong>Flavor:</strong> ' +
             escapeHtml(apiItem.flavor_text) + "</div>";
   }
 
-  if (statKeys.length) {
+  if (FULL_LOOKUP_CONFIG.showStats && statKeys.length) {
     html += '<div class="line"><strong>Stats</strong></div>';
     statKeys.forEach(key => {
       const val = statBlock[key];
@@ -1020,11 +1047,12 @@ function renderFullItemDetails(apiItem) {
     });
   }
 
-  // Raw JSON (for debugging / full reference)
-  html += '<details class="line-small" style="margin-top:8px;">' +
-          "<summary>Raw API data (items.json / API_Items)</summary>" +
-          "<pre>" + escapeHtml(JSON.stringify(apiItem, null, 2)) + "</pre>" +
-          "</details>";
+  if (FULL_LOOKUP_CONFIG.showRawJson) {
+    html += '<details class="line-small" style="margin-top:8px;">' +
+            "<summary>Raw API data (items.json / API_Items)</summary>" +
+            "<pre>" + escapeHtml(JSON.stringify(apiItem, null, 2)) + "</pre>" +
+            "</details>";
+  }
 
   html += "</div>";
   return html;
