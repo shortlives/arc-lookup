@@ -114,6 +114,10 @@
       font-size:26px;
       font-weight:bold;
       margin-bottom:4px;
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:8px;
     }
 
     .item-link {
@@ -190,6 +194,19 @@
     details summary {
       cursor:pointer;
     }
+
+    .full-item-btn {
+      background:#222;
+      color:#fff;
+      border:1px solid #444;
+      border-radius:6px;
+      padding:3px 8px;
+      font-size:12px;
+      cursor:pointer;
+    }
+    .full-item-btn:hover {
+      background:#333;
+    }
   </style>
 </head>
 <body>
@@ -198,7 +215,6 @@
     <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=732163012#gid=732163012"
        target="_blank" rel="noopener noreferrer">Spreadsheet</a>
     <button type="button" id="notesToggle">Important Notes</button>
-    <button type="button" id="fullLookupBtn">Full Item Lookup</button>
   </div>
 
   <div class="search-row">
@@ -289,8 +305,7 @@ const dom = {
   result:        document.getElementById("result"),
   notesPanel:    document.getElementById("notesPanel"),
   notesContent:  document.getElementById("notesContent"),
-  notesToggle:   document.getElementById("notesToggle"),
-  fullLookupBtn: document.getElementById("fullLookupBtn")
+  notesToggle:   document.getElementById("notesToggle")
 };
 
 /**
@@ -671,11 +686,6 @@ function renderNotesPanel() {
     return;
   }
 
-  if (!state.notesLoaded) {
-    dom.notesContent.textContent = "Loading…";
-    return;
-  }
-
   if (!state.importantNotes.length) {
     dom.notesContent.textContent = "No notes found.";
     return;
@@ -749,26 +759,37 @@ function renderItemBlock(item) {
 
   const recycledFrom = findRecyclersForItem(item.name);
 
+  const hasApiDetails = state.apiItemsByName.has(normalizeName(item.name));
+
   let html = '<div class="item-block">';
 
-  // Title line
+  // Title line (with optional "Full Info" button for this main item)
   html += '<div class="item-title">';
+  let titleInner = "";
+
   if (itemUrl) {
-    html += '<a class="item-link" href="' + itemUrl +
+    titleInner += '<a class="item-link" href="' + itemUrl +
             '" target="_blank" rel="noopener noreferrer">' +
             '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>" +
             "</a>";
   } else {
-    html += '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>";
+    titleInner += '<span style="color:' + rarityClr + ';">' + escapeHtml(item.name) + "</span>";
   }
 
   if (valueText) {
-    html += '<span class="item-value" style="color:' + valueClr + ';"> — ' +
+    titleInner += '<span class="item-value" style="color:' + valueClr + ';"> — ' +
             escapeHtml(valueText) + "</span>";
   }
 
   if (questTagHtml) {
-    html += " " + questTagHtml;
+    titleInner += " " + questTagHtml;
+  }
+
+  html += titleInner;
+
+  if (hasApiDetails) {
+    html += '<button type="button" class="full-item-btn" data-item-name="' +
+            escapeHtml(item.name) + '">Full Info</button>';
   }
 
   html += "</div>";
@@ -904,61 +925,26 @@ function findRecyclersForItem(targetName) {
 }
 
 /**
- * FULL ITEM LOOKUP (using raw API items / API_Items mirror)
+ * FULL ITEM LOOKUP – by item name (per-item button)
+ * Uses the same data items.json → API_Items is built from.
  */
-
-function fullItemLookup(queryRaw) {
-  const query = (queryRaw || "").trim();
-  if (!query) {
-    dom.result.innerHTML =
-      '<div class="error">Enter an item name in the search box, then click "Full Item Lookup".</div>';
-    dom.search.focus();
-    return;
-  }
-
+function fullItemLookupByName(name) {
   if (!state.dataLoaded) {
     dom.result.textContent = "Still loading data…";
     return;
   }
 
-  const qNorm = normalizeName(query);
+  const key = normalizeName(name);
+  const apiItem = state.apiItemsByName.get(key);
 
-  // 1) Exact name match first
-  let apiItem = state.apiItemsByName.get(qNorm);
-
-  // 2) If no exact match, look for partial matches
-  let partialMatches = [];
   if (!apiItem) {
-    partialMatches = state.apiItemsRaw.filter(
-      it => normalizeName(it.name).includes(qNorm)
-    );
-    if (partialMatches.length === 1) {
-      apiItem = partialMatches[0];
-    }
-  }
-
-  if (!apiItem && partialMatches.length === 0) {
     dom.result.innerHTML =
-      '<div>No API item found with that name in items.json / API_Items.</div>';
-    return;
-  }
-
-  if (!apiItem && partialMatches.length > 1) {
-    // Too many possible matches – show a short selectable list
-    let html = '<div>Multiple items matched. Refine your search or type one of these names exactly:</div><ul>';
-    partialMatches.slice(0, 20).forEach(it => {
-      html += "<li>" + escapeHtml(it.name) + "</li>";
-    });
-    if (partialMatches.length > 20) {
-      html += "<li>… (" + (partialMatches.length - 20) + " more)</li>";
-    }
-    html += "</ul>";
-    dom.result.innerHTML = html;
+      '<div class="error">No API details found for "' + escapeHtml(name) +
+      '" in items.json / API_Items.</div>';
     return;
   }
 
   dom.result.innerHTML = renderFullItemDetails(apiItem);
-  // In "full lookup" mode the instructions/top buttons are not required
   setInstructionsVisible(false);
 }
 
@@ -1096,8 +1082,12 @@ function attachEventHandlers() {
     }
   });
 
-  dom.fullLookupBtn.addEventListener("click", () => {
-    fullItemLookup(dom.search.value);
+  // Event delegation for per-item "Full Info" buttons inside #result
+  dom.result.addEventListener("click", (event) => {
+    const btn = event.target.closest(".full-item-btn");
+    if (!btn) return;
+    const itemName = btn.getAttribute("data-item-name") || "";
+    fullItemLookupByName(itemName);
   });
 }
 
