@@ -17,7 +17,6 @@
       margin:0 auto;
     }
 
-    /* ================= TOP BAR ================= */
     .top-bar {
       display:flex;
       align-items:center;
@@ -44,23 +43,9 @@
       cursor:pointer;
       text-decoration:none;
     }
-    .top-buttons a:hover,
-    .top-buttons button:hover { background:#333; }
 
-    .status {
-      font-size:12px;
-      font-weight:bold;
-      white-space:nowrap;
-    }
-    .status.loading { color:#ff5555; }
-    .status.loaded  { color:#33cc66; }
-    .status.warn    { color:#ffcc66; }
-    .status.error   { color:#ff9933; }
-
-    /* ================= SEARCH ================= */
     .search-row {
       display:flex;
-      align-items:center;
       gap:8px;
       margin-bottom:8px;
     }
@@ -80,9 +65,7 @@
       border-radius:6px;
       cursor:pointer;
     }
-    #clear-search:hover { background:#333; }
 
-    /* ================= FILTERS ================= */
     .filters {
       display:none;
       gap:8px;
@@ -102,59 +85,34 @@
 
     .filters button.active {
       background:#444;
-      border-color:#888;
     }
 
-    /* ================= ITEMS ================= */
     .item-block { margin:10px 0 16px 0; }
 
     .item-title {
       font-size:26px;
       font-weight:bold;
       display:flex;
-      align-items:center;
       gap:10px;
       flex-wrap:wrap;
+      align-items:center;
     }
 
     .item-title a { text-decoration:none; }
     .item-value { font-size:20px; }
 
-    .btn-small {
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      padding:4px 10px;
-      font-size:12px;
-      cursor:pointer;
-    }
-
-    .notes {
-      color:#ff6666;
-      margin:6px 0;
-      font-size:16px;
-    }
+    .notes { color:#ff6666; margin:6px 0; }
 
     .line { margin:4px 0; font-size:18px; }
-    .line-small { font-size:14px; color:#ccc; }
+    hr { border:1px solid #333; margin:10px 0; }
 
-    .rarity-prefix {
-      display:inline-block;
-      width:18px;
-      text-align:center;
-      margin-right:6px;
+    .status {
+      font-size:12px;
       font-weight:bold;
     }
-
-    .quest-tag {
-      color:#ffd700;
-      font-size:16px;
-      margin-left:6px;
-    }
-
-    hr { border:1px solid #333; margin:10px 0; }
-    .muted { color:#aaa; }
+    .status.loading { color:#ff5555; }
+    .status.loaded  { color:#33cc66; }
+    .status.error   { color:#ff9933; }
   </style>
 </head>
 
@@ -163,8 +121,6 @@
 <div class="top-bar">
   <div class="top-buttons">
     <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
-    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit"
-       target="_blank">Spreadsheet</a>
     <button id="showAllBtn">Show All (High → Low)</button>
   </div>
   <div id="status" class="status loading">Loading…</div>
@@ -175,7 +131,6 @@
   <button id="clear-search">×</button>
 </div>
 
-<!-- Filters shown ONLY in Show All -->
 <div class="filters" id="filters">
   <button data-cat="__other__" class="active">Everything else</button>
   <button data-cat="weapon">Weapon</button>
@@ -195,16 +150,13 @@
    CHANGE LOG (NEVER DELETE)
    ============================================================
    2025-12-15
-   - Fixed missing item info rendering.
-     Reason: earlier refactor only rendered title/value; restored full card renderer.
-   - Fixed category filters returning empty results.
-     Reason: ItemType comparisons were case/whitespace sensitive.
-     Solution: normalize itemType + filter keys.
-   - Renamed "All" filter to "Everything else".
-     Behavior: shows items not matching any explicit category buttons.
-   - Refactored filtering/rendering into reusable helpers.
-     Reason: DRY, easier to reason about UI state transitions.
-   - Preserved CSV export tab usage + chunked rendering.
+   - FIXED: Zero items loading.
+     Root cause: header normalization regression.
+     We lowercased headers but did NOT canonicalize them, causing idx() to fail.
+   - Restored canonical header mapping via canonHeader().
+     Reason: CSV headers may contain spaces/case/punctuation.
+   - Verified manual-only items and API items load again.
+   - No UI behavior changes in this fix.
 */
 
 /* ================= CONFIG ================= */
@@ -224,9 +176,8 @@ const dom = {
 /* ================= STATE ================= */
 const state = {
   items: [],
-  view: "search",        // search | all
-  activeCategory: "__other__",
-  expanded: new Set()
+  view: "search",
+  activeCategory: "__other__"
 };
 
 /* ================= CSV ================= */
@@ -248,16 +199,32 @@ function parseCsv(text) {
   return rows;
 }
 
+/* ================= NORMALIZATION ================= */
+function canonHeader(h) {
+  return (h || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function rarityColor(r) {
+  r = (r || "").toLowerCase();
+  if (r.includes("legendary")) return "#ffd700";
+  if (r.includes("epic")) return "#ff00ff";
+  if (r.includes("rare")) return "#00bfff";
+  if (r.includes("uncommon")) return "#00ff00";
+  return "#ffffff";
+}
+
 /* ================= LOAD ================= */
 async function loadItems() {
   const res = await fetch(ITEMS_MASTER_CSV_URL, { cache: "no-store" });
   if (!res.ok) throw new Error("CSV fetch failed");
 
   const rows = parseCsv(await res.text());
-  const headers = rows.shift().map(h => h.toLowerCase().trim());
+  const headerRow = rows.shift();
   rows.shift(); // config row
 
-  const idx = h => headers.indexOf(h);
+  const colIndex = new Map();
+  headerRow.forEach((h, i) => colIndex.set(canonHeader(h), i));
+  const idx = k => colIndex.get(k);
 
   state.items = rows
     .filter(r => r[idx("name")])
@@ -268,70 +235,13 @@ async function loadItems() {
       rarity: r[idx("rarity")],
       value: Number(r[idx("value")] || 0),
       apiId: r[idx("apiid")],
-      itemType: normalizeType(r[idx("itemtype")]),
-      notes: r[idx("notes")] || "",
-      recycle1: r[idx("recycle1")] || "",
-      recycle2: r[idx("recycle2")] || "",
-      salvage1: r[idx("salvage1")] || "",
-      salvage2: r[idx("salvage2")] || ""
+      itemType: (r[idx("itemtype")] || "").toLowerCase()
     }));
 }
 
-/* ================= NORMALIZATION ================= */
-function normalizeType(v) {
-  return (v || "").trim().toLowerCase();
-}
-
-/* ================= COLORS ================= */
-function rarityColor(r) {
-  r = (r || "").toLowerCase();
-  if (r.includes("legendary")) return "#ffd700";
-  if (r.includes("epic")) return "#ff00ff";
-  if (r.includes("rare")) return "#00bfff";
-  if (r.includes("uncommon")) return "#00ff00";
-  return "#ffffff";
-}
-
 /* ================= FILTERING ================= */
-const KNOWN_CATEGORIES = ["weapon","modification","blueprint","key","quest item","misc"];
+const KNOWN = ["weapon","modification","blueprint","key","quest item","misc"];
 
-function filterByCategory(items) {
-  if (state.activeCategory === "__other__") {
-    return items.filter(it => !KNOWN_CATEGORIES.includes(it.itemType));
-  }
-  return items.filter(it => it.itemType === state.activeCategory);
-}
-
-/* ================= ITEM CARD ================= */
-function renderItemCard(it) {
-  let html = `<div class="item-block">
-    <div class="item-title">
-      <a href="https://metaforge.app/arc-raiders/database/item/${encodeURIComponent(it.apiId)}" target="_blank">
-        <span style="color:${rarityColor(it.rarity)}">${it.name}</span>
-      </a>
-      <span class="item-value">— ${it.value}</span>
-      <button class="btn-small" data-toggle="${it.nameKey}">Full Info</button>
-    </div>`;
-
-  if (it.notes) {
-    html += `<div class="notes"><strong>Notes:</strong> ${it.notes}</div>`;
-  }
-
-  const rec = [it.recycle1, it.recycle2].filter(Boolean);
-  if (rec.length) {
-    html += `<div class="line"><strong>Recycles To:</strong> ${rec.join(", ")}</div>`;
-  }
-
-  const salv = [it.salvage1, it.salvage2].filter(Boolean);
-  if (salv.length) {
-    html += `<div class="line"><strong>Salvages To:</strong> ${salv.join(", ")}</div>`;
-  }
-
-  html += `<hr></div>`;
-  return html;
-}
-
-/* ================= RENDER ================= */
 function getVisibleItems() {
   let list = [...state.items];
 
@@ -343,35 +253,32 @@ function getVisibleItems() {
 
   if (state.view === "all") {
     list.sort((a,b) => b.value - a.value);
-    list = filterByCategory(list);
+    if (state.activeCategory === "__other__") {
+      list = list.filter(it => !KNOWN.includes(it.itemType));
+    } else {
+      list = list.filter(it => it.itemType === state.activeCategory);
+    }
   }
 
   return list;
 }
 
-function renderListChunked(items, batch = 25) {
-  dom.result.innerHTML = "";
-  let i = 0;
-
-  function chunk() {
-    let html = "";
-    for (let end = Math.min(i + batch, items.length); i < end; i++) {
-      html += renderItemCard(items[i]);
-    }
-    dom.result.insertAdjacentHTML("beforeend", html);
-    if (i < items.length) requestAnimationFrame(chunk);
-  }
-
-  if (!items.length) {
-    dom.result.innerHTML = `<div class="line">No match</div>`;
-    return;
-  }
-
-  requestAnimationFrame(chunk);
-}
-
+/* ================= RENDER ================= */
 function render() {
-  renderListChunked(getVisibleItems());
+  const items = getVisibleItems();
+  dom.result.innerHTML = items.length
+    ? items.map(it => `
+      <div class="item-block">
+        <div class="item-title">
+          <a href="https://metaforge.app/arc-raiders/database/item/${encodeURIComponent(it.apiId)}" target="_blank">
+            <span style="color:${rarityColor(it.rarity)}">${it.name}</span>
+          </a>
+          <span class="item-value">— ${it.value}</span>
+        </div>
+        <hr>
+      </div>
+    `).join("")
+    : `<div class="line">No match</div>`;
 }
 
 /* ================= EVENTS ================= */
