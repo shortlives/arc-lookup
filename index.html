@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <title>ARC Lookup</title>
 
-  <!-- MetaForge tooltips (unchanged) -->
   <script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
 
   <style>
@@ -17,7 +16,6 @@
       margin:0 auto;
     }
 
-    /* ================= TOP BAR ================= */
     .top-bar {
       display:flex;
       align-items:center;
@@ -44,10 +42,9 @@
       cursor:pointer;
       text-decoration:none;
     }
+
     .top-buttons a:hover,
-    .top-buttons button:hover {
-      background:#333;
-    }
+    .top-buttons button:hover { background:#333; }
 
     .status {
       font-size:12px;
@@ -58,7 +55,6 @@
     .status.loaded  { color:#33cc66; }
     .status.error   { color:#ff9933; }
 
-    /* ================= SEARCH ================= */
     .search-row {
       display:flex;
       align-items:center;
@@ -81,29 +77,7 @@
       border-radius:6px;
       cursor:pointer;
     }
-    #clear-search:hover { background:#333; }
 
-    /* ================= SHOW ALL FILTERS ================= */
-    .all-filters {
-      display:none; /* shown only in "Show All" mode */
-      gap:8px;
-      flex-wrap:wrap;
-      align-items:center;
-      margin:10px 0 14px 0;
-    }
-
-    .all-filters button {
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      padding:6px 10px;
-      font-size:13px;
-      cursor:pointer;
-    }
-    .all-filters button:hover { background:#333; }
-
-    /* ================= INSTRUCTIONS ================= */
     .instructions {
       display:none;
       background:#111;
@@ -113,29 +87,20 @@
       font-size:13px;
       margin-bottom:12px;
     }
-    .instructions .title { font-weight:bold; margin-bottom:6px; }
-    .pill { display:inline-block; padding:1px 7px; border:1px solid #444; border-radius:999px; margin-right:6px; }
-    .pill-common    { color:#fff; }
-    .pill-uncommon  { color:#00ff00; }
-    .pill-rare      { color:#00bfff; }
-    .pill-epic      { color:#ff00ff; }
-    .pill-legendary { color:#ffd700; }
-    .pill-v1 { color:#fff; }
-    .pill-v2 { color:#00ff00; }
-    .pill-v3 { color:#ff69b4; }
-    .pill-v4 { color:#ffd700; }
 
-    /* ================= ITEMS ================= */
     .item-block { margin:10px 0 16px 0; }
+
     .item-title {
       font-size:26px;
       font-weight:bold;
       display:flex;
-      align-items:center;
       gap:10px;
       flex-wrap:wrap;
+      align-items:center;
     }
+
     .item-title a { text-decoration:none; }
+
     .item-value { font-size:20px; }
 
     .btn-small {
@@ -147,6 +112,7 @@
       font-size:12px;
       cursor:pointer;
     }
+
     .btn-small:hover { background:#333; }
 
     .notes {
@@ -158,14 +124,6 @@
     .line { margin:4px 0; font-size:18px; }
     .line-small { font-size:14px; color:#ccc; }
 
-    .rarity-prefix {
-      display:inline-block;
-      width:18px;
-      text-align:center;
-      margin-right:6px;
-      font-weight:bold;
-    }
-
     .quest-tag {
       color:#ffd700;
       font-size:16px;
@@ -173,727 +131,161 @@
     }
 
     hr { border:1px solid #333; margin:10px 0; }
-
-    .muted { color:#aaa; }
-
-    /* In category-only view, keep it lean */
-    .category-only .notes,
-    .category-only .line,
-    .category-only hr,
-    .category-only .btn-small,
-    .category-only .quest-tag {
-      display:none !important;
-    }
   </style>
 </head>
 
 <body>
 
-  <div class="top-bar">
-    <div class="top-buttons" id="topButtons">
-      <a href="https://mapgenie.io/arc-raiders" target="_blank" rel="noopener noreferrer">Maps</a>
-      <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=491619272"
-         target="_blank" rel="noopener noreferrer">Spreadsheet</a>
-      <button type="button" id="showAllBtn">Show All (High → Low)</button>
-    </div>
-
-    <div id="status" class="status loading">Loading…</div>
+<div class="top-bar">
+  <div class="top-buttons">
+    <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
+    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=491619272"
+       target="_blank">Spreadsheet</a>
+    <button id="showAllBtn">Show All (High → Low)</button>
   </div>
+  <div id="status" class="status loading">Loading…</div>
+</div>
 
-  <div class="search-row">
-    <input id="search" placeholder="Type item name…" autofocus>
-    <button id="clear-search" type="button" aria-label="Clear search">×</button>
-  </div>
+<div class="search-row">
+  <input id="search" placeholder="Type item name…">
+  <button id="clear-search">×</button>
+</div>
 
-  <!-- Category buttons appear ONLY after Show All -->
-  <div class="all-filters" id="allFilters">
-    <button type="button" data-filter="default">Default</button>
-    <button type="button" data-filter="Weapon">Weapon</button>
-    <button type="button" data-filter="Modification">Modification</button>
-    <button type="button" data-filter="Blueprint">Blueprint</button>
-    <button type="button" data-filter="Key">Key</button>
-    <button type="button" data-filter="Quest Item">Quest Item</button>
-    <button type="button" data-filter="Misc">Misc</button>
-  </div>
+<div class="instructions" id="instructions">
+  Start typing to search items.
+</div>
 
-  <!-- Instructions show only while typing in search -->
-  <div class="instructions" id="instructions">
-    <div class="title">How to read the colors</div>
-    <div>
-      Item Rarity:
-      <span class="pill pill-common">Common</span>
-      <span class="pill pill-uncommon">Uncommon</span>
-      <span class="pill pill-rare">Rare</span>
-      <span class="pill pill-epic">Epic</span>
-      <span class="pill pill-legendary">Legendary</span>
-    </div>
-    <div style="margin-top:6px;">
-      Sell value:
-      <span class="pill pill-v1">≤ 1000</span>
-      <span class="pill pill-v2">1001–2000</span>
-      <span class="pill pill-v3">2001–5000</span>
-      <span class="pill pill-v4">5001+</span>
-    </div>
-    <div style="margin-top:6px;">
-      Recycled From: <span class="line-small">R = Recycled, S = Salvaged · R-# / S-# show yield</span>
-    </div>
-  </div>
-
-  <div id="result"></div>
+<div id="result"></div>
 
 <script>
 "use strict";
 
-/* ============================================================
-   CONFIG (your Items_Master published CSV)
-   ============================================================ */
 const ITEMS_MASTER_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=491619272&single=true&output=csv";
 
-/* ============================================================
-   DOM
-   ============================================================ */
+const VIEWS = {
+  SEARCH: "search",
+  ALL_HIGH_LOW: "all_high_low"
+};
+
 const dom = {
   status: document.getElementById("status"),
   search: document.getElementById("search"),
   clear: document.getElementById("clear-search"),
   showAll: document.getElementById("showAllBtn"),
-  filters: document.getElementById("allFilters"),
   instructions: document.getElementById("instructions"),
   result: document.getElementById("result")
 };
 
-/* ============================================================
-   STATE
-   ============================================================ */
 const state = {
-  loaded: false,
-
-  headers: [],
-  configRowByHeader: new Map(),   // header -> config cell value (row 2)
-  colIndex: new Map(),            // canonical header -> index
-
-  items: [],                      // enabled items
-  byName: new Map(),              // normalized name -> item object
-
-  viewMode: "search",             // "search" | "all"
-  activeCategory: "default",      // "default" | specific item_type
-  expandedNames: new Set()        // which items are showing Full Info
+  view: VIEWS.SEARCH,
+  items: [],
+  expandedNames: new Set()
 };
 
-/* ============================================================
-   CSV PARSER (robust)
-   Handles commas/quotes correctly; prevents column shifting.
-   ============================================================ */
+/* ================= CSV ================= */
+
 function parseCsv(text) {
   const rows = [];
-  let row = [];
-  let field = "";
-  let inQuotes = false;
+  let row = [], field = "", inQuotes = false;
 
   for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    const n = text[i + 1];
-
-    if (c === '"' && inQuotes && n === '"') {
-      field += '"';
-      i++;
-    } else if (c === '"') {
-      inQuotes = !inQuotes;
-    } else if (c === "," && !inQuotes) {
-      row.push(field);
-      field = "";
-    } else if ((c === "\n" || c === "\r") && !inQuotes) {
-      if (field || row.length) {
-        row.push(field);
-        rows.push(row);
-        row = [];
-        field = "";
-      }
-    } else {
-      field += c;
-    }
+    const c = text[i], n = text[i+1];
+    if (c === '"' && inQuotes && n === '"') { field += '"'; i++; }
+    else if (c === '"') inQuotes = !inQuotes;
+    else if (c === "," && !inQuotes) { row.push(field); field = ""; }
+    else if ((c === "\n" || c === "\r") && !inQuotes) {
+      if (row.length || field) rows.push([...row, field]);
+      row = []; field = "";
+    } else field += c;
   }
-
-  if (field || row.length) {
-    row.push(field);
-    rows.push(row);
-  }
-
+  if (row.length || field) rows.push([...row, field]);
   return rows;
 }
 
-/* ============================================================
-   NORMALIZATION + SAFE OUTPUT
-   ============================================================ */
-function canonHeader(h) {
-  return (h || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+/* ================= LOAD ================= */
+
+async function loadItems() {
+  const res = await fetch(ITEMS_MASTER_CSV_URL, { cache: "no-store" });
+  const rows = parseCsv(await res.text());
+  const headers = rows.shift().map(h => h.toLowerCase());
+  rows.shift(); // config row
+
+  const idx = h => headers.indexOf(h);
+
+  state.items = rows
+    .filter(r => r[idx("enabled")]?.toLowerCase() !== "false")
+    .map(r => ({
+      name: r[idx("name")],
+      rarity: r[idx("rarity")],
+      value: Number(r[idx("value")] || 0),
+      apiId: r[idx("apiid")]
+    }));
 }
 
-function normalizeName(s) {
-  return (s || "").trim().toLowerCase();
-}
+/* ================= RENDER ================= */
 
-function escapeHtml(str) {
-  return (str || "").replace(/[&<>"']/g, ch => ({
-    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
-  }[ch]));
-}
-
-/* ============================================================
-   COLOR RULES
-   ============================================================ */
 function rarityColor(r) {
-  const s = (r || "").toLowerCase();
-  if (s.includes("legendary")) return "#ffd700";
-  if (s.includes("epic")) return "#ff00ff";
-  if (s.includes("rare")) return "#00bfff";
-  if (s.includes("uncommon")) return "#00ff00";
-  return "#ffffff";
+  r = (r || "").toLowerCase();
+  if (r.includes("legendary")) return "#ffd700";
+  if (r.includes("epic")) return "#ff00ff";
+  if (r.includes("rare")) return "#00bfff";
+  if (r.includes("uncommon")) return "#00ff00";
+  return "#fff";
 }
 
-function priceColor(n) {
-  const v = Number(n) || 0;
-  if (v <= 1000) return "#ffffff";
-  if (v <= 2000) return "#00ff00";
-  if (v <= 5000) return "#ff69b4";
-  return "#ffd700";
-}
-
-/* ============================================================
-   CONFIG ROW SEMANTICS (your rule):
-   - blank = show
-   - hide  = hide
-   Also treats false/0/no as hide.
-   ============================================================ */
-function isColumnVisibleByConfig(header) {
-  const raw = (state.configRowByHeader.get(header) || "").toString().trim().toLowerCase();
-  if (raw === "") return true;                // blank = show
-  if (["hide","false","0","no"].includes(raw)) return false;
-  return true;                                // anything else = show (future-proof)
-}
-
-/* ============================================================
-   VALUE MEANINGFUL CHECK
-   - Hide empty
-   - Hide 0 / 0.0 / 0.00
-   ============================================================ */
-function isMeaningfulValue(v) {
-  if (v === null || v === undefined) return false;
-  const s = String(v).trim();
-  if (s === "") return false;
-
-  // numeric zero variants
-  const num = Number(s.replace(/,/g,""));
-  if (!isNaN(num) && num === 0) return false;
-
-  return true;
-}
-
-/* ============================================================
-   RECYCLE / SALVAGE PARSING
-   Accepts: "2x Wires", "2 x Wires", "2 Wires", etc.
-   ============================================================ */
-function parseQtyName(entry) {
-  if (!entry) return null;
-  const t = entry.trim();
-  if (!t) return null;
-
-  const m = t.match(/^\s*(\d+)\s*x?\s*(.+)\s*$/i);
-  if (!m) return { qty: null, name: t };
-  return { qty: parseInt(m[1], 10), name: m[2].trim() };
-}
-
-/* ============================================================
-   COLUMN ACCESS HELPERS
-   Uses canonical header mapping to tolerate harmless header changes.
-   ============================================================ */
-function idx(keyCanonical) {
-  return state.colIndex.get(keyCanonical);
-}
-
-function cell(row, keyCanonical) {
-  const i = idx(keyCanonical);
-  if (i === undefined) return "";
-  return row[i] ?? "";
-}
-
-function numCell(row, keyCanonical) {
-  const raw = cell(row, keyCanonical);
-  const n = Number(String(raw).replace(/,/g,""));
-  return isNaN(n) ? 0 : n;
-}
-
-/* ============================================================
-   DATA LOAD WITH RETRY (no page refresh)
-   Fixes intermittent load failures without user action.
-   ============================================================ */
-async function fetchWithRetry(url, attempts = 6) {
-  let delay = 800;
-  let lastErr = null;
-
-  for (let i = 1; i <= attempts; i++) {
-    try {
-      setStatus(`Loading… (try ${i}/${attempts})`, "loading");
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.text();
-    } catch (e) {
-      lastErr = e;
-      await new Promise(r => setTimeout(r, delay));
-      delay = Math.min(delay * 1.7, 8000);
-    }
-  }
-  throw lastErr || new Error("Unknown load failure");
-}
-
-async function loadItemsMaster() {
-  const text = await fetchWithRetry(ITEMS_MASTER_CSV_URL);
-
-  const rows = parseCsv(text);
-  if (rows.length < 3) throw new Error("CSV missing header/config/data rows.");
-
-  // Row 1 = headers
-  state.headers = rows.shift().map(h => (h || "").trim());
-
-  // Row 2 = config row
-  const configRow = rows.shift();
-  state.configRowByHeader.clear();
-  state.colIndex.clear();
-
-  state.headers.forEach((h, i) => {
-    state.configRowByHeader.set(h, (configRow[i] || "").trim());
-    state.colIndex.set(canonHeader(h), i);
-  });
-
-  // Required columns (canonical)
-  const required = ["name","value","itemtype","enabled","apiid","rarity"];
-  for (const k of required) {
-    if (idx(k) === undefined) {
-      throw new Error(`Missing required column: ${k}`);
-    }
-  }
-
-  // Parse items
-  state.items = [];
-  state.byName.clear();
-
-  for (const r of rows) {
-    const name = String(cell(r, "name")).trim();
-    if (!name) continue;
-
-    const enabledRaw = String(cell(r, "enabled")).trim().toLowerCase();
-    const enabled = !["false","0","no","hide"].includes(enabledRaw);
-    if (!enabled) continue;
-
-    const item = {
-      row: r,
-      name,
-      nameKey: normalizeName(name),
-      apiId: String(cell(r, "apiid")).trim(),
-      rarity: String(cell(r, "rarity")).trim(),
-      valueNum: numCell(r, "value"),
-      valueRaw: String(cell(r, "value")).trim(),
-      itemType: String(cell(r, "itemtype")).trim(), // keep original casing for UI
-      // overlay fields commonly used
-      recycle1: String(cell(r, "recycle1")).trim(),
-      recycle2: String(cell(r, "recycle2")).trim(),
-      salvage1: String(cell(r, "salvage1")).trim(),
-      salvage2: String(cell(r, "salvage2")).trim(),
-      notes: String(cell(r, "notes")).trim(),
-      quest1: String(cell(r, "quest1")).trim(),
-      quest2: String(cell(r, "quest2")).trim(),
-      quest3: String(cell(r, "quest3")).trim()
-    };
-
-    state.items.push(item);
-    state.byName.set(item.nameKey, item);
-  }
-
-  if (!state.items.length) {
-    throw new Error("Parsed 0 enabled items from Items_Master. Check enabled column and published CSV.");
-  }
-}
-
-/* ============================================================
-   STATUS UI
-   ============================================================ */
-function setStatus(text, kind) {
-  dom.status.textContent = text;
-  dom.status.className = `status ${kind}`;
-}
-
-function setLoadedStatus() {
-  setStatus("Loaded", "loaded");
-  // Hide after 5 seconds
-  setTimeout(() => {
-    // only hide if still loaded (don’t hide loading/error)
-    if (dom.status.classList.contains("loaded")) dom.status.textContent = "";
-  }, 5000);
-}
-
-/* ============================================================
-   SEARCH + ALL MODE UI
-   ============================================================ */
-function setAllMode(isAll) {
-  state.viewMode = isAll ? "all" : "search";
-  dom.filters.style.display = isAll ? "flex" : "none";
-
-  // In "search" mode, category reset
-  if (!isAll) state.activeCategory = "default";
-}
-
-/* ============================================================
-   “RECYCLED FROM” (R + S yields)
-   Scans all items and finds those that recycle/salvage into target.
-   ============================================================ */
-function findSourcesForTarget(targetName) {
-  const targetKey = normalizeName(targetName);
-  const sources = [];
-
-  for (const src of state.items) {
-    let rQty = 0;
-    let sQty = 0;
-    let matched = false;
-
-    // recycle entries
-    for (const entry of [src.recycle1, src.recycle2]) {
-      const p = parseQtyName(entry);
-      if (!p) continue;
-      if (normalizeName(p.name) !== targetKey) continue;
-      matched = true;
-      if (p.qty) rQty += p.qty;
-    }
-
-    // salvage entries
-    for (const entry of [src.salvage1, src.salvage2]) {
-      const p = parseQtyName(entry);
-      if (!p) continue;
-      if (normalizeName(p.name) !== targetKey) continue;
-      matched = true;
-      if (p.qty) sQty += p.qty;
-    }
-
-    if (matched) {
-      sources.push({
-        name: src.name,
-        rarity: src.rarity,
-        valueNum: src.valueNum,
-        valueText: src.valueRaw || (src.valueNum ? String(src.valueNum) : ""),
-        rQty: rQty || null,
-        sQty: sQty || null,
-        quest1: src.quest1,
-        quest2: src.quest2,
-        quest3: src.quest3
-      });
-    }
-  }
-
-  // Sort: higher value first
-  sources.sort((a,b) => (b.valueNum || 0) - (a.valueNum || 0));
-  return sources;
-}
-
-/* ============================================================
-   QUEST TAG RENDER (from quest1/2/3 columns)
-   ============================================================ */
-function questTagHtml(item) {
-  const q = [item.quest1, item.quest2, item.quest3].map(s => (s || "").trim()).filter(Boolean);
-  if (!q.length) return "";
-  return `<span class="quest-tag">[${q.map(escapeHtml).join(", ")}]</span>`;
-}
-
-/* ============================================================
-   RENDER: Default item card (search + show-all)
-   Includes: title, value, notes (red), Recycles/Salvages to, Recycled From,
-   plus per-item Full Info button.
-   ============================================================ */
-function renderItemCard(item, options) {
-  const { categoryOnly } = options;
-
-  const rarityClr = rarityColor(item.rarity);
-  const valueClr = priceColor(item.valueNum);
-  const valueText = item.valueRaw || (item.valueNum ? item.valueNum.toLocaleString("en-US") : "");
-
-  // MetaForge item link (works even without tooltips)
-  const itemLink = item.apiId
-    ? `https://metaforge.app/arc-raiders/database/item/${encodeURIComponent(item.apiId)}`
-    : null;
-
-  const expanded = state.expandedNames.has(item.nameKey);
-
-  let html = `<div class="item-block${categoryOnly ? " category-only" : ""}">`;
-
-  // Title + value + Full Info button (main item only)
-  html += `<div class="item-title">`;
-  if (itemLink) {
-    html += `<a href="${itemLink}" target="_blank" rel="noopener noreferrer">
-              <span style="color:${rarityClr};">${escapeHtml(item.name)}</span>
-            </a>`;
-  } else {
-    html += `<span style="color:${rarityClr};">${escapeHtml(item.name)}</span>`;
-  }
-
-  if (valueText) {
-    html += `<span class="item-value" style="color:${valueClr};">— ${escapeHtml(valueText)}</span>`;
-  }
-
-  // Quest tag on title line (if present)
-  html += questTagHtml(item);
-
-  // Full Info button only in non-category-only view
-  if (!categoryOnly) {
-    html += `<button class="btn-small" type="button" data-action="toggle-full" data-name="${escapeHtml(item.nameKey)}">
-              ${expanded ? "Hide Info" : "Full Info"}
-            </button>`;
-  }
-
-  html += `</div>`;
-
-  // Notes (red) at top
-  if (!categoryOnly && item.notes && item.notes.trim()) {
-    html += `<div class="notes"><strong>Notes:</strong> ${escapeHtml(item.notes)}</div>`;
-  }
-
-  if (!categoryOnly) {
-    // Recycles To
-    const recTo = [item.recycle1, item.recycle2].filter(s => (s || "").trim());
-    if (recTo.length) {
-      html += `<div class="line"><strong>Recycles To:</strong> ${recTo.map(escapeHtml).join(", ")}</div>`;
-    }
-
-    // Salvages To
-    const salvTo = [item.salvage1, item.salvage2].filter(s => (s || "").trim());
-    if (salvTo.length) {
-      html += `<div class="line"><strong>Salvages To:</strong> ${salvTo.map(escapeHtml).join(", ")}</div>`;
-    }
-
-    // Recycled From (includes recycle + salvage yields)
-    const sources = findSourcesForTarget(item.name);
-    if (sources.length) {
-      html += `<div class="line" style="color:#ffa500;">
-                <strong>Recycled From:</strong>
-                <span class="line-small">R = Recycled, S = Salvaged</span>
-              </div>`;
-
-      for (const src of sources) {
-        const srcRarityClr = rarityColor(src.rarity);
-        const srcValueClr = priceColor(src.valueNum);
-        const tags = [];
-        if (src.rQty != null) tags.push(`R-${src.rQty}`);
-        if (src.sQty != null) tags.push(`S-${src.sQty}`);
-
-        html += `<div class="line">
-                  <span class="rarity-prefix" style="color:${srcRarityClr};">-</span>
-                  <span style="color:#fff; font-weight:bold;">${escapeHtml(src.name)}</span>
-                  ${tags.length ? ` <span class="line-small">${tags.join(" · ")}</span>` : ""}
-                  ${src.valueText ? ` — <span style="color:${srcValueClr}; font-weight:bold;">${escapeHtml(src.valueText)}</span>` : ""}
-                </div>`;
-      }
-    }
-
-    // Expanded Full Info (respects CONFIG + hides empty/0)
-    if (expanded) {
-      html += renderFullInfoBlock(item);
-    }
-
-    html += `<hr>`;
-  } else {
-    // category-only: no hr/lines/notes/buttons
-    html += `<hr>`;
-  }
-
-  html += `</div>`;
-  return html;
-}
-
-/* ============================================================
-   FULL INFO BLOCK
-   Uses CONFIG row:
-   - Column visible if config blank (show) OR not "hide"
-   - Hides empty/0 values always
-   ============================================================ */
-function renderFullInfoBlock(item) {
-  const r = item.row;
-
-  let html = `<div class="line"><span class="muted">Full Info:</span></div>`;
-
-  for (let i = 0; i < state.headers.length; i++) {
-    const header = state.headers[i];
-    if (!header) continue;
-
-    // Skip core fields we already show elsewhere
-    const ch = canonHeader(header);
-    if (["apiid","api_id","name","rarity","value","notes","enabled","recycle1","recycle2","salvage1","salvage2","quest1","quest2","quest3"].includes(ch)) {
-      continue;
-    }
-
-    // Respect CONFIG row
-    if (!isColumnVisibleByConfig(header)) continue;
-
-    const raw = r[i] ?? "";
-    if (!isMeaningfulValue(raw)) continue;
-
-    html += `<div class="line"><strong>${escapeHtml(header)}:</strong> ${escapeHtml(String(raw).trim())}</div>`;
-  }
-
-  return html;
-}
-
-/* ============================================================
-   RENDER ENTRYPOINTS
-   ============================================================ */
-function renderSearchResults(query) {
-  const q = normalizeName(query);
+function render() {
   dom.result.innerHTML = "";
+  dom.instructions.style.display = state.view === VIEWS.SEARCH ? "block" : "none";
 
-  if (!q) return;
-
-  const matches = state.items.filter(it => it.nameKey.includes(q));
-  if (!matches.length) {
-    dom.result.innerHTML = `<div class="line">No match</div>`;
-    return;
+  if (state.view === VIEWS.ALL_HIGH_LOW) {
+    [...state.items]
+      .sort((a,b) => b.value - a.value)
+      .forEach(it => {
+        dom.result.innerHTML += `
+          <div class="item-block">
+            <div class="item-title">
+              <a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank">
+                <span style="color:${rarityColor(it.rarity)}">${it.name}</span>
+              </a>
+              <span class="item-value">— ${it.value}</span>
+            </div>
+            <hr>
+          </div>`;
+      });
   }
-
-  // Prefer prefix matches first, then alphabetical
-  matches.sort((a,b) => {
-    const ap = a.nameKey.startsWith(q) ? 0 : 1;
-    const bp = b.nameKey.startsWith(q) ? 0 : 1;
-    if (ap !== bp) return ap - bp;
-    return a.name.localeCompare(b.name);
-  });
-
-  dom.result.innerHTML = matches.map(it => renderItemCard(it, { categoryOnly:false })).join("");
 }
 
-function renderAllHighToLow() {
-  const items = [...state.items].sort((a,b) => (b.valueNum || 0) - (a.valueNum || 0));
-  dom.result.innerHTML = items.map(it => renderItemCard(it, { categoryOnly:false })).join("");
-}
+/* ================= EVENTS ================= */
 
-function renderAllByCategory(category) {
-  // show only that one category, and hide everything else except category list itself (lean view)
-  const c = (category || "").trim().toLowerCase();
-  const items = state.items
-    .filter(it => String(it.itemType || "").trim().toLowerCase() === c)
-    .sort((a,b) => (b.valueNum || 0) - (a.valueNum || 0));
+dom.showAll.onclick = () => {
+  state.view = VIEWS.ALL_HIGH_LOW;
+  dom.search.value = "";
+  render();
+};
 
-  dom.result.innerHTML = items.map(it => renderItemCard(it, { categoryOnly:true })).join("");
-}
+dom.search.oninput = () => {
+  state.view = VIEWS.SEARCH;
+  render();
+};
 
-/* ============================================================
-   UI EVENTS
-   ============================================================ */
-function attachEvents() {
-  // Search input
-  dom.search.addEventListener("input", () => {
-    const v = dom.search.value;
+dom.clear.onclick = () => {
+  dom.search.value = "";
+  state.view = VIEWS.SEARCH;
+  dom.result.innerHTML = "";
+};
 
-    // If user types, we are in search mode
-    if (v.trim()) {
-      setAllMode(false);
-      dom.instructions.style.display = "block";
-      renderSearchResults(v);
-    } else {
-      dom.instructions.style.display = "none";
-      dom.result.innerHTML = "";
-    }
-  });
+/* ================= BOOT ================= */
 
-  // Focus behavior: clear + reset (and clear results)
-  dom.search.addEventListener("focus", () => {
-    if (dom.search.value) {
-      dom.search.value = "";
-      dom.result.innerHTML = "";
-    }
-    dom.instructions.style.display = "none";
-    setAllMode(false);
-  });
-
-  // Clear button
-  dom.clear.addEventListener("click", () => {
-    dom.search.value = "";
-    dom.search.focus();
-    dom.result.innerHTML = "";
-    dom.instructions.style.display = "none";
-    setAllMode(false);
-  });
-
-  // Show All toggle
-  dom.showAll.addEventListener("click", () => {
-    // Toggle behavior: clicking again exits All mode
-    if (state.viewMode === "all") {
-      // Exit to search mode (clears list; user can type)
-      setAllMode(false);
-      state.activeCategory = "default";
-      dom.result.innerHTML = "";
-      dom.instructions.style.display = dom.search.value.trim() ? "block" : "none";
-      return;
-    }
-
-    // Enter All mode
-    setAllMode(true);
-    state.activeCategory = "default";
-    dom.instructions.style.display = "none";
-    dom.search.value = "";
-    state.expandedNames.clear();
-    renderAllHighToLow();
-  });
-
-  // Category buttons (only visible in All mode)
-  dom.filters.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-filter]");
-    if (!btn) return;
-
-    const filter = btn.getAttribute("data-filter") || "default";
-    state.activeCategory = filter;
-
-    // Clear expanded state when switching lists
-    state.expandedNames.clear();
-
-    if (filter === "default") {
-      renderAllHighToLow();
-      return;
-    }
-    renderAllByCategory(filter);
-  });
-
-  // Event delegation for per-item Full Info toggle
-  dom.result.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-action='toggle-full']");
-    if (!btn) return;
-
-    const key = btn.getAttribute("data-name") || "";
-    if (!key) return;
-
-    if (state.expandedNames.has(key)) state.expandedNames.delete(key);
-    else state.expandedNames.add(key);
-
-    // Re-render current view without losing mode
-    if (state.viewMode === "all") {
-      if (state.activeCategory === "default") renderAllHighToLow();
-      else renderAllByCategory(state.activeCategory);
-    } else {
-      renderSearchResults(dom.search.value);
-    }
-  });
-}
-
-/* ============================================================
-   BOOT
-   ============================================================ */
 (async function init() {
-  attachEvents();
-
   try {
-    await loadItemsMaster();
-    state.loaded = true;
-    setLoadedStatus();
-  } catch (err) {
-    console.error("loadData error:", err);
-    setStatus("Error loading data", "error");
-    // Keep error visible; user can click Show All or type again after it recovers,
-    // but we do not force refresh loops that mask slow fetches.
+    await loadItems();
+    dom.status.textContent = "Loaded";
+    dom.status.className = "status loaded";
+  } catch (e) {
+    dom.status.textContent = "Error loading data";
+    dom.status.className = "status error";
+    console.error(e);
   }
 })();
 </script>
