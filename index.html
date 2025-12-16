@@ -82,7 +82,7 @@
     }
     #clear-search:hover { background:#333; }
 
-    /* ================= CATEGORY FILTERS ================= */
+    /* ================= FILTERS ================= */
     .filters {
       display:none;
       gap:8px;
@@ -139,6 +139,14 @@
     .line { margin:4px 0; font-size:18px; }
     .line-small { font-size:14px; color:#ccc; }
 
+    .rarity-prefix {
+      display:inline-block;
+      width:18px;
+      text-align:center;
+      margin-right:6px;
+      font-weight:bold;
+    }
+
     .quest-tag {
       color:#ffd700;
       font-size:16px;
@@ -146,6 +154,7 @@
     }
 
     hr { border:1px solid #333; margin:10px 0; }
+    .muted { color:#aaa; }
   </style>
 </head>
 
@@ -166,15 +175,15 @@
   <button id="clear-search">×</button>
 </div>
 
-<!-- Category filters (Show All only) -->
+<!-- Filters shown ONLY in Show All -->
 <div class="filters" id="filters">
-  <button data-cat="all" class="active">All</button>
-  <button data-cat="Weapon">Weapon</button>
-  <button data-cat="Modification">Modification</button>
-  <button data-cat="Blueprint">Blueprint</button>
-  <button data-cat="Key">Key</button>
-  <button data-cat="Quest Item">Quest Item</button>
-  <button data-cat="Misc">Misc</button>
+  <button data-cat="__other__" class="active">Everything else</button>
+  <button data-cat="weapon">Weapon</button>
+  <button data-cat="modification">Modification</button>
+  <button data-cat="blueprint">Blueprint</button>
+  <button data-cat="key">Key</button>
+  <button data-cat="quest item">Quest Item</button>
+  <button data-cat="misc">Misc</button>
 </div>
 
 <div id="result"></div>
@@ -183,18 +192,19 @@
 "use strict";
 
 /* ============================================================
-   CHANGE LOG
+   CHANGE LOG (NEVER DELETE)
    ============================================================
    2025-12-15
-   - Switched data source to dedicated CSV export tab (gid=1167907621)
-     Reason: eliminate column drift & silent row drops from mixed-content sheets.
-   - Restored category filter buttons ONLY inside Show All view.
-     Reason: requested UX, but enforced exclusive view to avoid state explosions.
-   - Refactored rendering to a single pipeline:
-       getVisibleItems() -> renderListChunked()
-     Reason: DRY, prevents desync bugs and browser freezes.
-   - Kept chunked rendering + CSV normalization.
-     Reason: performance and data integrity.
+   - Fixed missing item info rendering.
+     Reason: earlier refactor only rendered title/value; restored full card renderer.
+   - Fixed category filters returning empty results.
+     Reason: ItemType comparisons were case/whitespace sensitive.
+     Solution: normalize itemType + filter keys.
+   - Renamed "All" filter to "Everything else".
+     Behavior: shows items not matching any explicit category buttons.
+   - Refactored filtering/rendering into reusable helpers.
+     Reason: DRY, easier to reason about UI state transitions.
+   - Preserved CSV export tab usage + chunked rendering.
 */
 
 /* ================= CONFIG ================= */
@@ -215,7 +225,7 @@ const dom = {
 const state = {
   items: [],
   view: "search",        // search | all
-  activeCategory: "all", // category filter (Show All only)
+  activeCategory: "__other__",
   expanded: new Set()
 };
 
@@ -244,7 +254,7 @@ async function loadItems() {
   if (!res.ok) throw new Error("CSV fetch failed");
 
   const rows = parseCsv(await res.text());
-  const headers = rows.shift().map(h => h.toLowerCase());
+  const headers = rows.shift().map(h => h.toLowerCase().trim());
   rows.shift(); // config row
 
   const idx = h => headers.indexOf(h);
@@ -258,11 +268,21 @@ async function loadItems() {
       rarity: r[idx("rarity")],
       value: Number(r[idx("value")] || 0),
       apiId: r[idx("apiid")],
-      category: r[idx("itemtype")] || "Misc"
+      itemType: normalizeType(r[idx("itemtype")]),
+      notes: r[idx("notes")] || "",
+      recycle1: r[idx("recycle1")] || "",
+      recycle2: r[idx("recycle2")] || "",
+      salvage1: r[idx("salvage1")] || "",
+      salvage2: r[idx("salvage2")] || ""
     }));
 }
 
-/* ================= HELPERS ================= */
+/* ================= NORMALIZATION ================= */
+function normalizeType(v) {
+  return (v || "").trim().toLowerCase();
+}
+
+/* ================= COLORS ================= */
 function rarityColor(r) {
   r = (r || "").toLowerCase();
   if (r.includes("legendary")) return "#ffd700";
@@ -270,6 +290,45 @@ function rarityColor(r) {
   if (r.includes("rare")) return "#00bfff";
   if (r.includes("uncommon")) return "#00ff00";
   return "#ffffff";
+}
+
+/* ================= FILTERING ================= */
+const KNOWN_CATEGORIES = ["weapon","modification","blueprint","key","quest item","misc"];
+
+function filterByCategory(items) {
+  if (state.activeCategory === "__other__") {
+    return items.filter(it => !KNOWN_CATEGORIES.includes(it.itemType));
+  }
+  return items.filter(it => it.itemType === state.activeCategory);
+}
+
+/* ================= ITEM CARD ================= */
+function renderItemCard(it) {
+  let html = `<div class="item-block">
+    <div class="item-title">
+      <a href="https://metaforge.app/arc-raiders/database/item/${encodeURIComponent(it.apiId)}" target="_blank">
+        <span style="color:${rarityColor(it.rarity)}">${it.name}</span>
+      </a>
+      <span class="item-value">— ${it.value}</span>
+      <button class="btn-small" data-toggle="${it.nameKey}">Full Info</button>
+    </div>`;
+
+  if (it.notes) {
+    html += `<div class="notes"><strong>Notes:</strong> ${it.notes}</div>`;
+  }
+
+  const rec = [it.recycle1, it.recycle2].filter(Boolean);
+  if (rec.length) {
+    html += `<div class="line"><strong>Recycles To:</strong> ${rec.join(", ")}</div>`;
+  }
+
+  const salv = [it.salvage1, it.salvage2].filter(Boolean);
+  if (salv.length) {
+    html += `<div class="line"><strong>Salvages To:</strong> ${salv.join(", ")}</div>`;
+  }
+
+  html += `<hr></div>`;
+  return html;
 }
 
 /* ================= RENDER ================= */
@@ -284,9 +343,7 @@ function getVisibleItems() {
 
   if (state.view === "all") {
     list.sort((a,b) => b.value - a.value);
-    if (state.activeCategory !== "all") {
-      list = list.filter(it => it.category === state.activeCategory);
-    }
+    list = filterByCategory(list);
   }
 
   return list;
@@ -297,20 +354,11 @@ function renderListChunked(items, batch = 25) {
   let i = 0;
 
   function chunk() {
-    const slice = items.slice(i, i + batch).map(it => `
-      <div class="item-block">
-        <div class="item-title">
-          <a href="https://metaforge.app/arc-raiders/database/item/${encodeURIComponent(it.apiId)}" target="_blank">
-            <span style="color:${rarityColor(it.rarity)}">${it.name}</span>
-          </a>
-          <span class="item-value">— ${it.value}</span>
-        </div>
-        <hr>
-      </div>
-    `).join("");
-
-    dom.result.insertAdjacentHTML("beforeend", slice);
-    i += batch;
+    let html = "";
+    for (let end = Math.min(i + batch, items.length); i < end; i++) {
+      html += renderItemCard(items[i]);
+    }
+    dom.result.insertAdjacentHTML("beforeend", html);
     if (i < items.length) requestAnimationFrame(chunk);
   }
 
@@ -340,18 +388,17 @@ dom.clear.addEventListener("click", () => {
 
 dom.showAll.addEventListener("click", () => {
   state.view = "all";
-  state.activeCategory = "all";
+  state.activeCategory = "__other__";
   dom.search.value = "";
   dom.filters.style.display = "flex";
   [...dom.filters.children].forEach(b => b.classList.remove("active"));
-  dom.filters.querySelector('[data-cat="all"]').classList.add("active");
+  dom.filters.children[0].classList.add("active");
   render();
 });
 
 dom.filters.addEventListener("click", e => {
   const btn = e.target.closest("button[data-cat]");
   if (!btn) return;
-
   state.activeCategory = btn.dataset.cat;
   [...dom.filters.children].forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
