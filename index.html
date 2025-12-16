@@ -1,196 +1,38 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>ARC Lookup</title>
-
-  <script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
-
-  <style>
-    body {
-      background:#000;
-      color:#fff;
-      font-family:Segoe UI, sans-serif;
-      padding:20px;
-      max-width:980px;
-      margin:0 auto;
-    }
-
-    .top-bar {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:12px;
-    }
-
-    .top-buttons {
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .top-buttons a,
-    .top-buttons button {
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      padding:6px 12px;
-      font-size:14px;
-      cursor:pointer;
-      text-decoration:none;
-    }
-
-    .top-buttons a:hover,
-    .top-buttons button:hover { background:#333; }
-
-    .status {
-      font-size:12px;
-      font-weight:bold;
-      white-space:nowrap;
-    }
-    .status.loading { color:#ff5555; }
-    .status.loaded  { color:#33cc66; }
-    .status.error   { color:#ff9933; }
-
-    .search-row {
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin-bottom:8px;
-    }
-
-    #search {
-      flex:1;
-      font-size:22px;
-      padding:12px;
-    }
-
-    #clear-search {
-      padding:10px 14px;
-      font-size:18px;
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      cursor:pointer;
-    }
-
-    .instructions {
-      display:none;
-      background:#111;
-      border:1px solid #333;
-      border-radius:8px;
-      padding:10px 12px;
-      font-size:13px;
-      margin-bottom:12px;
-    }
-
-    .item-block { margin:10px 0 16px 0; }
-
-    .item-title {
-      font-size:26px;
-      font-weight:bold;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .item-title a { text-decoration:none; }
-
-    .item-value { font-size:20px; }
-
-    .btn-small {
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      padding:4px 10px;
-      font-size:12px;
-      cursor:pointer;
-    }
-
-    .btn-small:hover { background:#333; }
-
-    .notes {
-      color:#ff6666;
-      margin:6px 0;
-      font-size:16px;
-    }
-
-    .line { margin:4px 0; font-size:18px; }
-    .line-small { font-size:14px; color:#ccc; }
-
-    .quest-tag {
-      color:#ffd700;
-      font-size:16px;
-      margin-left:6px;
-    }
-
-    hr { border:1px solid #333; margin:10px 0; }
-  </style>
-</head>
-
-<body>
-
-<div class="top-bar">
-  <div class="top-buttons">
-    <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
-    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=491619272"
-       target="_blank">Spreadsheet</a>
-    <button id="showAllBtn">Show All (High → Low)</button>
-  </div>
-  <div id="status" class="status loading">Loading…</div>
-</div>
-
-<div class="search-row">
-  <input id="search" placeholder="Type item name…">
-  <button id="clear-search">×</button>
-</div>
-
-<div class="instructions" id="instructions">
-  Start typing to search items.
-</div>
-
-<div id="result"></div>
-
 <script>
 "use strict";
 
+/* ================= CONFIG ================= */
 const ITEMS_MASTER_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=491619272&single=true&output=csv";
 
 const VIEWS = {
   SEARCH: "search",
-  ALL_HIGH_LOW: "all_high_low"
+  ALL: "all"
 };
 
+/* ================= DOM ================= */
 const dom = {
   status: document.getElementById("status"),
   search: document.getElementById("search"),
   clear: document.getElementById("clear-search"),
   showAll: document.getElementById("showAllBtn"),
-  instructions: document.getElementById("instructions"),
-  result: document.getElementById("result")
+  result: document.getElementById("result"),
+  instructions: document.getElementById("instructions")
 };
 
+/* ================= STATE ================= */
 const state = {
   view: VIEWS.SEARCH,
-  items: [],
-  expandedNames: new Set()
+  items: []
 };
 
 /* ================= CSV ================= */
-
 function parseCsv(text) {
   const rows = [];
   let row = [], field = "", inQuotes = false;
 
   for (let i = 0; i < text.length; i++) {
-    const c = text[i], n = text[i+1];
+    const c = text[i], n = text[i + 1];
     if (c === '"' && inQuotes && n === '"') { field += '"'; i++; }
     else if (c === '"') inQuotes = !inQuotes;
     else if (c === "," && !inQuotes) { row.push(field); field = ""; }
@@ -204,7 +46,6 @@ function parseCsv(text) {
 }
 
 /* ================= LOAD ================= */
-
 async function loadItems() {
   const res = await fetch(ITEMS_MASTER_CSV_URL, { cache: "no-store" });
   const rows = parseCsv(await res.text());
@@ -217,14 +58,14 @@ async function loadItems() {
     .filter(r => r[idx("enabled")]?.toLowerCase() !== "false")
     .map(r => ({
       name: r[idx("name")],
+      nameKey: r[idx("name")]?.toLowerCase() || "",
       rarity: r[idx("rarity")],
       value: Number(r[idx("value")] || 0),
       apiId: r[idx("apiid")]
     }));
 }
 
-/* ================= RENDER ================= */
-
+/* ================= HELPERS ================= */
 function rarityColor(r) {
   r = (r || "").toLowerCase();
   if (r.includes("legendary")) return "#ffd700";
@@ -234,32 +75,45 @@ function rarityColor(r) {
   return "#fff";
 }
 
+function renderItems(items) {
+  dom.result.innerHTML = items.map(it => `
+    <div class="item-block">
+      <div class="item-title">
+        <a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}"
+           target="_blank" rel="noopener noreferrer">
+          <span style="color:${rarityColor(it.rarity)}">${it.name}</span>
+        </a>
+        <span class="item-value">— ${it.value}</span>
+      </div>
+      <hr>
+    </div>
+  `).join("");
+}
+
+/* ================= RENDER ================= */
 function render() {
   dom.result.innerHTML = "";
   dom.instructions.style.display = state.view === VIEWS.SEARCH ? "block" : "none";
 
-  if (state.view === VIEWS.ALL_HIGH_LOW) {
-    [...state.items]
-      .sort((a,b) => b.value - a.value)
-      .forEach(it => {
-        dom.result.innerHTML += `
-          <div class="item-block">
-            <div class="item-title">
-              <a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank">
-                <span style="color:${rarityColor(it.rarity)}">${it.name}</span>
-              </a>
-              <span class="item-value">— ${it.value}</span>
-            </div>
-            <hr>
-          </div>`;
-      });
+  if (state.view === VIEWS.ALL) {
+    const sorted = [...state.items].sort((a, b) => b.value - a.value);
+    renderItems(sorted);
+    return;
   }
+
+  const q = dom.search.value.trim().toLowerCase();
+  if (!q) return;
+
+  const matches = state.items
+    .filter(it => it.nameKey.includes(q))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  renderItems(matches);
 }
 
 /* ================= EVENTS ================= */
-
 dom.showAll.onclick = () => {
-  state.view = VIEWS.ALL_HIGH_LOW;
+  state.view = VIEWS.ALL;
   dom.search.value = "";
   render();
 };
@@ -271,24 +125,19 @@ dom.search.oninput = () => {
 
 dom.clear.onclick = () => {
   dom.search.value = "";
-  state.view = VIEWS.SEARCH;
   dom.result.innerHTML = "";
 };
 
 /* ================= BOOT ================= */
-
 (async function init() {
   try {
     await loadItems();
     dom.status.textContent = "Loaded";
     dom.status.className = "status loaded";
   } catch (e) {
+    console.error(e);
     dom.status.textContent = "Error loading data";
     dom.status.className = "status error";
-    console.error(e);
   }
 })();
 </script>
-
-</body>
-</html>
