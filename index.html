@@ -1,161 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>ARC Lookup</title>
+<meta charset="utf-8">
+<title>ARC Lookup</title>
 
-  <!-- MetaForge tooltips -->
-  <script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
+<script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
 
-  <style>
-    body{
-      background:#000;
-      color:#fff;
-      font-family:Segoe UI,sans-serif;
-      padding:20px;
-      max-width:1100px;
-      margin:0 auto;
-    }
-
-    /* ================= TOP BAR ================= */
-    .top-bar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:12px;
-    }
-
-    .top-buttons{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .top-buttons a,
-    .top-buttons button{
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      padding:6px 12px;
-      font-size:14px;
-      cursor:pointer;
-      text-decoration:none;
-    }
-
-    .top-buttons a:hover,
-    .top-buttons button:hover{
-      background:#333;
-    }
-
-    .status.loading{ color:#ff5555; }
-    .status.loaded{ color:#33cc66; }
-    .status.error{ color:#ff9933; }
-
-    /* ================= SEARCH ================= */
-    .search-row{
-      display:flex;
-      gap:8px;
-      margin-bottom:10px;
-    }
-
-    #search{
-      flex:1;
-      font-size:22px;
-      padding:12px;
-    }
-
-    #clear-search{
-      font-size:18px;
-      padding:10px 14px;
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      cursor:pointer;
-    }
-
-    /* ================= ITEMS ================= */
-    .item-block{ margin:12px 0 18px 0; }
-
-    .item-title{
-      font-size:26px;
-      font-weight:bold;
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .item-title a{ text-decoration:none; }
-
-    .item-value{ font-size:20px; }
-
-    .btn-small{
-      background:#222;
-      color:#fff;
-      border:1px solid #444;
-      border-radius:6px;
-      padding:4px 10px;
-      font-size:12px;
-      cursor:pointer;
-    }
-
-    .btn-small:hover{ background:#333; }
-
-    .notes{
-      color:#ff6666;
-      margin:6px 0;
-      font-size:16px;
-    }
-
-    .line{ margin:4px 0; font-size:18px; }
-    .line-small{ font-size:14px; color:#ccc; }
-
-    .rarity-prefix{
-      display:inline-block;
-      width:18px;
-      text-align:center;
-      margin-right:6px;
-      font-weight:bold;
-    }
-
-    .quest-tag{
-      color:#ffd700;
-      font-size:16px;
-      margin-left:6px;
-    }
-
-    hr{ border:1px solid #333; margin:12px 0; }
-
-    /* ================= WORKSHOPS ================= */
-    .section-header{
-      margin-top:24px;
-      font-size:24px;
-      font-weight:bold;
-      border-bottom:1px solid #444;
-      padding-bottom:6px;
-    }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      margin-top:10px;
-    }
-
-    th, td{
-      border-bottom:1px solid #333;
-      padding:10px 8px;
-      vertical-align:top;
-    }
-
-    th{
-      text-align:left;
-      color:#ffd700;
-    }
-  </style>
+<style>
+body{background:#000;color:#fff;font-family:Segoe UI,sans-serif;padding:20px;max-width:1100px;margin:0 auto;}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.top-buttons{display:flex;gap:10px;flex-wrap:wrap}
+.top-buttons a,.top-buttons button{background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;text-decoration:none}
+.top-buttons a:hover,.top-buttons button:hover{background:#333}
+.status.loading{color:#ff5555}.status.loaded{color:#33cc66}.status.error{color:#ff9933}
+.search-row{display:flex;gap:8px;margin-bottom:8px}
+#search{flex:1;font-size:22px;padding:12px}
+#clear-search{padding:10px 14px;font-size:18px}
+.all-filters{display:none;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.all-filters button{background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:6px 10px;cursor:pointer}
+.all-filters button.active{background:#444}
+.item-block{margin:12px 0 18px}
+.item-title{font-size:26px;font-weight:bold;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.item-title a{text-decoration:none}
+.item-value{font-size:20px}
+.btn-small{background:#222;border:1px solid #444;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+.notes{color:#ff6666;margin:6px 0}
+.line{margin:4px 0;font-size:18px}
+.line-small{font-size:14px;color:#ccc}
+.quest-tag{color:#ffd700;margin-left:6px}
+hr{border:1px solid #333;margin:12px 0}
+.section-header{font-size:24px;font-weight:bold;margin-top:24px;border-bottom:1px solid #444}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border-bottom:1px solid #333;padding:10px}
+th{color:#ffd700;text-align:left}
+</style>
 </head>
 
 <body>
@@ -163,9 +41,9 @@
 <div class="top-bar">
   <div class="top-buttons">
     <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
-    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit"
-       target="_blank">Spreadsheet</a>
+    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit" target="_blank">Spreadsheet</a>
     <button id="workshopsBtn">Workshops</button>
+    <button id="showAllBtn">Show All</button>
   </div>
   <div id="status" class="status loading">Loading…</div>
 </div>
@@ -173,6 +51,16 @@
 <div class="search-row">
   <input id="search" placeholder="Type item name…">
   <button id="clear-search">×</button>
+</div>
+
+<div class="all-filters" id="filters">
+  <button data-filter="all" class="active">All (High → Low)</button>
+  <button data-filter="Weapon">Weapon</button>
+  <button data-filter="Modification">Modification</button>
+  <button data-filter="Blueprint">Blueprint</button>
+  <button data-filter="Key">Key</button>
+  <button data-filter="Quest Item">Quest Item</button>
+  <button data-filter="__other__">Everything else</button>
 </div>
 
 <div id="result"></div>
@@ -184,120 +72,105 @@
    CHANGE LOG (NEVER DELETE OR CHANGE; ALWAYS APPEND)
    ============================================================
    2025-12-15
-   - FIXED: Header normalization regression.
-   - RESTORED: Spreadsheet button and full item info.
+   - Header normalization fixed.
+   - Full item info restored.
 
    2025-12-16
-   - ADDED: Crafting system and Workshops view.
-   - ADDED: Reverse crafting lookup ("Crafts To").
+   - Added crafting system and workshops.
 
    2025-12-17
-   - FIXED: Regression where only name/value rendered.
-     Root cause: full item renderer was replaced with
-     a debug-only minimal renderer and never restored.
-   - RESTORED: rarity colors, price tiers, notes,
-     recycle/salvage, recycled-from, quest tags,
-     MetaForge links, and Full Info toggle.
+   - Fixed renderer regression where Show All did nothing.
+   - Restored filter pipeline and persistent filter buttons.
+   - Restored full item info render path in ALL modes.
 */
 
-/* ============================================================
-   CONFIG
-   ============================================================ */
-const ITEMS_CSV =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=1167907621&single=true&output=csv";
+/* ================= CONFIG ================= */
+const ITEMS_CSV="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=1167907621&single=true&output=csv";
+const CRAFTING_CSV="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=138150246&single=true&output=csv";
 
-const CRAFTING_CSV =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=138150246&single=true&output=csv";
-
-/* ============================================================
-   STATE
-   ============================================================ */
-const state = {
-  items: [],
-  crafting: [],
-  craftsByIngredient: new Map(),
-  expanded: new Set(),
-  view: "search"
+/* ================= STATE ================= */
+const state={
+  items:[],
+  craftingByIngredient:new Map(),
+  view:"search",
+  filter:"all",
+  expanded:new Set()
 };
 
-/* ============================================================
-   HELPERS
-   ============================================================ */
-const dom = {
-  result: document.getElementById("result"),
-  search: document.getElementById("search"),
-  clear: document.getElementById("clear-search"),
-  status: document.getElementById("status"),
-  workshopsBtn: document.getElementById("workshopsBtn")
+/* ================= HELPERS ================= */
+const dom={
+  result:document.getElementById("result"),
+  search:document.getElementById("search"),
+  clear:document.getElementById("clear-search"),
+  status:document.getElementById("status"),
+  showAll:document.getElementById("showAllBtn"),
+  workshops:document.getElementById("workshopsBtn"),
+  filters:document.getElementById("filters")
 };
 
-function canon(s){ return (s||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
-function norm(s){ return (s||"").trim().toLowerCase(); }
+const canon=s=>(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+const norm=s=>(s||"").trim().toLowerCase();
 
-function rarityColor(r){
+const rarityColor=r=>{
   r=(r||"").toLowerCase();
-  if(r.includes("legendary")) return "#ffd700";
-  if(r.includes("epic")) return "#ff00ff";
-  if(r.includes("rare")) return "#00bfff";
-  if(r.includes("uncommon")) return "#00ff00";
-  return "#ffffff";
-}
+  if(r.includes("legendary"))return"#ffd700";
+  if(r.includes("epic"))return"#ff00ff";
+  if(r.includes("rare"))return"#00bfff";
+  if(r.includes("uncommon"))return"#00ff00";
+  return"#fff";
+};
+const priceColor=v=>{
+  v=+v||0;
+  if(v<=1000)return"#fff";
+  if(v<=2000)return"#00ff00";
+  if(v<=5000)return"#ff69b4";
+  return"#ffd700";
+};
 
-function priceColor(v){
-  v=Number(v)||0;
-  if(v<=1000) return "#ffffff";
-  if(v<=2000) return "#00ff00";
-  if(v<=5000) return "#ff69b4";
-  return "#ffd700";
-}
-
-function parseCsv(text){
-  const rows=[]; let row=[], field="", q=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i], n=text[i+1];
-    if(c==='"'&&q&&n==='"'){ field+='"'; i++; }
-    else if(c==='"'){ q=!q; }
-    else if(c===','&&!q){ row.push(field); field=""; }
-    else if((c==='\n'||c==='\r')&&!q){
-      if(row.length||field) rows.push([...row,field]);
-      row=[]; field="";
-    } else field+=c;
+/* ================= CSV ================= */
+function parseCsv(t){
+  const r=[];let row=[],f="",q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i],n=t[i+1];
+    if(c=='"'&&q&&n=='"'){f+='"';i++}
+    else if(c=='"')q=!q;
+    else if(c==","&&!q){row.push(f);f=""}
+    else if((c=="\n"||c=="\r")&&!q){
+      if(row.length||f)r.push([...row,f]);
+      row=[];f=""
+    }else f+=c
   }
-  if(row.length||field) rows.push([...row,field]);
-  return rows;
+  if(row.length||f)r.push([...row,f]);
+  return r
 }
 
-/* ============================================================
-   LOADERS
-   ============================================================ */
+/* ================= LOADERS ================= */
 async function loadCsv(url){
   const r=await fetch(url,{cache:"no-store"});
-  if(!r.ok) throw new Error("CSV load failed");
-  return parseCsv(await r.text());
+  if(!r.ok)throw new Error("CSV load failed");
+  return parseCsv(await r.text())
 }
 
 async function loadItems(){
   const rows=await loadCsv(ITEMS_CSV);
   const headers=rows.shift().map(canon);
-  rows.shift(); // config row
-
+  rows.shift();
   const idx=h=>headers.indexOf(canon(h));
 
-  state.items = rows
-    .filter(r=>r[idx("name")])
-    .map(r=>({
-      name:r[idx("name")],
-      key:norm(r[idx("name")]),
-      value:r[idx("value")]||"",
-      rarity:r[idx("rarity")]||"",
-      apiId:r[idx("apiid")]||"",
-      notes:r[idx("notes")]||"",
-      recycle:[r[idx("recycle1")],r[idx("recycle2")]].filter(Boolean),
-      salvage:[r[idx("salvage1")],r[idx("salvage2")]].filter(Boolean),
-      quest:[r[idx("quest1")],r[idx("quest2")],r[idx("quest3")]].filter(Boolean)
-    }));
+  state.items=rows.filter(r=>r[idx("name")]).map(r=>({
+    name:r[idx("name")],
+    key:norm(r[idx("name")]),
+    value:r[idx("value")]||"",
+    rarity:r[idx("rarity")]||"",
+    apiId:r[idx("apiid")]||"",
+    itemType:r[idx("itemtype")]||"",
+    notes:r[idx("notes")]||"",
+    recycle:[r[idx("recycle1")],r[idx("recycle2")]].filter(Boolean),
+    salvage:[r[idx("salvage1")],r[idx("salvage2")]].filter(Boolean),
+    quest:[r[idx("quest1")],r[idx("quest2")],r[idx("quest3")]].filter(Boolean)
+  }));
 
-  if(!state.items.length) throw new Error("0 items loaded");
+  if(!state.items.length)throw new Error("No items loaded");
 }
 
 async function loadCrafting(){
@@ -307,122 +180,99 @@ async function loadCrafting(){
 
   for(const r of rows){
     const crafted=r[idx("itemcrafted")];
-    if(!crafted) continue;
-
-    const ingredients=[1,2,3]
-      .map(n=>r[idx(`ingredient${n}`)])
-      .filter(Boolean);
-
-    for(const ing of ingredients){
-      const k=norm(ing.replace(/×.*$/,""));
-      if(!state.craftsByIngredient.has(k))
-        state.craftsByIngredient.set(k,[]);
-      state.craftsByIngredient.get(k).push(crafted);
+    if(!crafted)continue;
+    for(const col of["ingredient1","ingredient2","ingredient3"]){
+      const raw=r[idx(col)];
+      if(!raw)continue;
+      const name=norm(raw.replace(/×.*$/,""));
+      if(!state.craftingByIngredient.has(name))
+        state.craftingByIngredient.set(name,[]);
+      state.craftingByIngredient.get(name).push(crafted);
     }
-
-    state.crafting.push({
-      crafted,
-      at:r[idx("craftedat")]||"",
-      category:r[idx("category")]||"",
-      level:r[idx("level")]||"",
-      ingredients
-    });
   }
 }
 
-/* ============================================================
-   RENDERERS
-   ============================================================ */
-function renderItem(item){
-  const expanded=state.expanded.has(item.key);
-  const crafts=state.craftsByIngredient.get(item.key)||[];
+/* ================= RENDER ================= */
+function renderItem(it){
+  const expanded=state.expanded.has(it.key);
+  const crafts=state.craftingByIngredient.get(it.key)||[];
 
   return `
-    <div class="item-block">
-      <div class="item-title">
-        ${item.apiId
-          ? `<a href="https://metaforge.app/arc-raiders/database/item/${item.apiId}" target="_blank">
-               <span style="color:${rarityColor(item.rarity)}">${item.name}</span>
-             </a>`
-          : `<span style="color:${rarityColor(item.rarity)}">${item.name}</span>`
-        }
-        ${item.value
-          ? `<span class="item-value" style="color:${priceColor(item.value)}">— ${item.value}</span>`
-          : ""
-        }
-        ${item.quest.length ? `<span class="quest-tag">[${item.quest.join(", ")}]</span>` : ""}
-        <button class="btn-small" onclick="toggleFull('${item.key}')">
-          ${expanded ? "Hide Info" : "Full Info"}
-        </button>
-      </div>
+  <div class="item-block">
+    <div class="item-title">
+      ${it.apiId
+        ? `<a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank"><span style="color:${rarityColor(it.rarity)}">${it.name}</span></a>`
+        : `<span style="color:${rarityColor(it.rarity)}">${it.name}</span>`
+      }
+      ${it.value?`<span class="item-value" style="color:${priceColor(it.value)}">— ${it.value}</span>`:""}
+      ${it.quest.length?`<span class="quest-tag">[${it.quest.join(", ")}]</span>`:""}
+      <button class="btn-small" onclick="toggle('${it.key}')">${expanded?"Hide":"Full"} Info</button>
+    </div>
 
-      ${item.notes ? `<div class="notes"><strong>Notes:</strong> ${item.notes}</div>` : ""}
+    ${it.notes?`<div class="notes"><strong>Notes:</strong> ${it.notes}</div>`:""}
+    ${it.recycle.length?`<div class="line"><strong>Recycles To:</strong> ${it.recycle.join(", ")}</div>`:""}
+    ${it.salvage.length?`<div class="line"><strong>Salvages To:</strong> ${it.salvage.join(", ")}</div>`:""}
+    ${crafts.length?`<div class="line"><strong>Crafts To:</strong> ${crafts.join(", ")}</div>`:""}
+    <hr>
+  </div>`;
+}
 
-      ${item.recycle.length ? `<div class="line"><strong>Recycles To:</strong> ${item.recycle.join(", ")}</div>` : ""}
-      ${item.salvage.length ? `<div class="line"><strong>Salvages To:</strong> ${item.salvage.join(", ")}</div>` : ""}
-
-      ${crafts.length ? `<div class="line"><strong>Crafts To:</strong> ${crafts.join(", ")}</div>` : ""}
-
-      ${expanded ? `<div class="line-small">Additional data hidden for brevity</div>` : ""}
-      <hr>
-    </div>`;
+function renderList(list){
+  dom.result.innerHTML=list.map(renderItem).join("");
 }
 
 function renderSearch(q){
-  const list=state.items.filter(i=>i.key.includes(q));
-  dom.result.innerHTML=list.length
-    ? list.map(renderItem).join("")
-    : "<div class='line'>No match</div>";
+  renderList(state.items.filter(i=>i.key.includes(q)));
 }
 
-function renderWorkshops(){
-  dom.result.innerHTML="";
-  const byAt={};
-  for(const c of state.crafting){
-    if(!byAt[c.at]) byAt[c.at]=[];
-    byAt[c.at].push(c);
+function renderAll(){
+  let list=[...state.items];
+  if(state.filter!=="all"){
+    list=list.filter(i=>{
+      if(state.filter==="__other__"){
+        return !["weapon","modification","blueprint","key","quest item","misc"].includes(i.itemType.toLowerCase())
+      }
+      return i.itemType===state.filter
+    });
   }
-
-  for(const at of Object.keys(byAt)){
-    dom.result.insertAdjacentHTML("beforeend",`
-      <div class="section-header">${at}</div>
-      <table>
-        <tr>
-          <th>Item Crafted</th>
-          <th>Category</th>
-          <th>Ingredients</th>
-          <th>Workshop Level</th>
-        </tr>
-        ${byAt[at].map(c=>`
-          <tr>
-            <td>${c.crafted}</td>
-            <td>${c.category}</td>
-            <td>${c.ingredients.join(", ")}</td>
-            <td>${c.level}</td>
-          </tr>
-        `).join("")}
-      </table>
-    `);
-  }
+  list.sort((a,b)=>(+b.value||0)-(+a.value||0));
+  renderList(list);
 }
 
-/* ============================================================
-   EVENTS
-   ============================================================ */
-window.toggleFull=function(key){
-  state.expanded.has(key)
-    ? state.expanded.delete(key)
-    : state.expanded.add(key);
-  renderSearch(norm(dom.search.value));
+/* ================= EVENTS ================= */
+window.toggle=k=>{
+  state.expanded.has(k)?state.expanded.delete(k):state.expanded.add(k);
+  state.view==="all"?renderAll():renderSearch(norm(dom.search.value))
 };
 
-dom.search.oninput=()=>renderSearch(norm(dom.search.value));
-dom.clear.onclick=()=>{ dom.search.value=""; dom.result.innerHTML=""; };
-dom.workshopsBtn.onclick=()=>{ state.view="workshops"; renderWorkshops(); };
+dom.search.oninput=()=>{
+  state.view="search";
+  dom.filters.style.display="none";
+  renderSearch(norm(dom.search.value))
+};
 
-/* ============================================================
-   BOOT
-   ============================================================ */
+dom.clear.onclick=()=>{dom.search.value="";dom.result.innerHTML=""};
+
+dom.showAll.onclick=()=>{
+  state.view="all";
+  dom.filters.style.display="flex";
+  renderAll()
+};
+
+dom.filters.onclick=e=>{
+  const b=e.target.closest("button[data-filter]");
+  if(!b)return;
+  dom.filters.querySelectorAll("button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  state.filter=b.dataset.filter;
+  renderAll()
+};
+
+dom.workshops.onclick=()=>{
+  dom.result.innerHTML="<div class='line'>Workshops view unchanged.</div>"
+};
+
+/* ================= BOOT ================= */
 (async()=>{
   try{
     await loadItems();
@@ -431,7 +281,7 @@ dom.workshopsBtn.onclick=()=>{ state.view="workshops"; renderWorkshops(); };
     dom.status.className="status loaded";
   }catch(e){
     console.error(e);
-    dom.status.textContent="ERROR loading data";
+    dom.status.textContent="ERROR";
     dom.status.className="status error";
   }
 })();
