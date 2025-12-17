@@ -10,10 +10,7 @@
 body{background:#000;color:#fff;font-family:Segoe UI,sans-serif;padding:20px;max-width:1100px;margin:0 auto}
 .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .top-buttons{display:flex;gap:10px;flex-wrap:wrap}
-.top-buttons a,.top-buttons button{
-  background:#222;color:#fff;border:1px solid #444;border-radius:6px;
-  padding:6px 12px;cursor:pointer;text-decoration:none
-}
+.top-buttons a,.top-buttons button{background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;text-decoration:none}
 .top-buttons a:hover,.top-buttons button:hover{background:#333}
 .status.loading{color:#ff5555}.status.loaded{color:#33cc66}.status.error{color:#ff9933}
 
@@ -22,30 +19,21 @@ body{background:#000;color:#fff;font-family:Segoe UI,sans-serif;padding:20px;max
 #clear-search{padding:10px 14px;font-size:18px}
 
 .all-filters{display:none;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.all-filters button{
-  background:#222;color:#fff;border:1px solid #444;border-radius:6px;
-  padding:6px 10px;cursor:pointer
-}
+.all-filters button{background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:6px 10px;cursor:pointer}
 .all-filters button.active{background:#444}
 
 .item-block{margin:12px 0 18px}
 .item-title{font-size:26px;font-weight:bold;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .item-title a{text-decoration:none}
 .item-value{font-size:20px}
-.btn-small{
-  background:#222;border:1px solid #444;color:#fff;
-  border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer
-}
+.btn-small{background:#222;border:1px solid #444;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
 .notes{color:#ff6666;margin:6px 0}
 .line{margin:4px 0;font-size:18px}
 .line-small{font-size:14px;color:#ccc}
 .quest-tag{color:#ffd700;margin-left:6px}
 hr{border:1px solid #333;margin:12px 0}
 
-.section-header{
-  font-size:24px;font-weight:bold;margin-top:24px;
-  border-bottom:1px solid #444;padding-bottom:6px
-}
+.section-header{font-size:24px;font-weight:bold;margin-top:24px;border-bottom:1px solid #444;padding-bottom:6px}
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th,td{border-bottom:1px solid #333;padding:10px;vertical-align:top}
 th{color:#ffd700;text-align:left}
@@ -100,10 +88,14 @@ th{color:#ffd700;text-align:left}
    - Restored Full Info toggle render path.
 
    2025-12-18
-   - Moved "Everything else" to leftmost filter and made it default.
-   - Moved "All (High → Low)" to the far right.
-   - Fixed Full Info toggle logic.
-   - Fully restored Workshops rendering.
+   - Moved "Everything else" to default filter.
+   - Restored Workshops rendering.
+
+   2025-12-19
+   - FIXED: Full Info now iterates all columns.
+   - Respects config row hide semantics.
+   - Skips empty and zero values only.
+   - Recycles To and Crafts To always visible.
 */
 
 /* ================= CONFIG ================= */
@@ -115,8 +107,9 @@ const CRAFTING_CSV =
 
 /* ================= STATE ================= */
 const state={
+  headers:[],
+  configRow:[],
   items:[],
-  crafting:[],
   craftsByIngredient:new Map(),
   expanded:new Set(),
   view:"search",
@@ -138,20 +131,16 @@ const dom={
 const canon=s=>(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
 const norm=s=>(s||"").trim().toLowerCase();
 
-function rarityColor(r){
-  r=(r||"").toLowerCase();
-  if(r.includes("legendary"))return"#ffd700";
-  if(r.includes("epic"))return"#ff00ff";
-  if(r.includes("rare"))return"#00bfff";
-  if(r.includes("uncommon"))return"#00ff00";
-  return"#fff";
+function isHiddenByConfig(i){
+  const v=(state.configRow[i]||"").toLowerCase().trim();
+  return v==="hide"||v==="false"||v==="0";
 }
-function priceColor(v){
-  v=+v||0;
-  if(v<=1000)return"#fff";
-  if(v<=2000)return"#00ff00";
-  if(v<=5000)return"#ff69b4";
-  return"#ffd700";
+function isMeaningful(v){
+  if(v==null) return false;
+  const s=String(v).trim();
+  if(!s) return false;
+  const n=Number(s.replace(/,/g,""));
+  return isNaN(n)||n!==0;
 }
 
 /* ================= CSV ================= */
@@ -180,18 +169,20 @@ async function loadCsv(url){
 
 async function loadItems(){
   const rows=await loadCsv(ITEMS_CSV);
-  const headers=rows.shift().map(canon);
-  rows.shift();
-  const idx=h=>headers.indexOf(canon(h));
+  state.headers=rows.shift();
+  state.configRow=rows.shift();
+
+  const headersCanon=state.headers.map(canon);
+  const idx=h=>headersCanon.indexOf(canon(h));
 
   state.items=rows.filter(r=>r[idx("name")]).map(r=>({
+    row:r,
     name:r[idx("name")],
     key:norm(r[idx("name")]),
     value:r[idx("value")]||"",
     rarity:r[idx("rarity")]||"",
     apiId:r[idx("apiid")]||"",
     itemType:r[idx("itemtype")]||"",
-    notes:r[idx("notes")]||"",
     recycle:[r[idx("recycle1")],r[idx("recycle2")]].filter(Boolean),
     salvage:[r[idx("salvage1")],r[idx("salvage2")]].filter(Boolean),
     quest:[r[idx("quest1")],r[idx("quest2")],r[idx("quest3")]].filter(Boolean)
@@ -203,24 +194,13 @@ async function loadCrafting(){
   const headers=rows.shift().map(canon);
   const idx=h=>headers.indexOf(canon(h));
 
-  state.crafting=[];
-  state.craftsByIngredient.clear();
-
   for(const r of rows){
     const crafted=r[idx("itemcrafted")];
     if(!crafted)continue;
-
-    const row={
-      crafted,
-      category:r[idx("category")]||"",
-      at:r[idx("craftedat")]||"",
-      level:r[idx("level")]||"",
-      ingredients:[1,2,3].map(n=>r[idx(`ingredient${n}`)]).filter(Boolean)
-    };
-    state.crafting.push(row);
-
-    for(const ing of row.ingredients){
-      const key=norm(ing.replace(/×.*$/,""));
+    for(const col of["ingredient1","ingredient2","ingredient3"]){
+      const raw=r[idx(col)];
+      if(!raw)continue;
+      const key=norm(raw.replace(/×.*$/,""));
       if(!state.craftsByIngredient.has(key))
         state.craftsByIngredient.set(key,[]);
       state.craftsByIngredient.get(key).push(crafted);
@@ -229,6 +209,16 @@ async function loadCrafting(){
 }
 
 /* ================= RENDER ================= */
+function renderFullInfo(it){
+  let html="";
+  it.row.forEach((val,i)=>{
+    if(isHiddenByConfig(i)) return;
+    if(!isMeaningful(val)) return;
+    html+=`<div class="line"><strong>${state.headers[i]}:</strong> ${val}</div>`;
+  });
+  return html;
+}
+
 function renderItem(it){
   const expanded=state.expanded.has(it.key);
   const crafts=state.craftsByIngredient.get(it.key)||[];
@@ -237,24 +227,19 @@ function renderItem(it){
   <div class="item-block">
     <div class="item-title">
       ${it.apiId
-        ? `<a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank">
-            <span style="color:${rarityColor(it.rarity)}">${it.name}</span>
-          </a>`
-        : `<span style="color:${rarityColor(it.rarity)}">${it.name}</span>`
-      }
-      ${it.value?`<span class="item-value" style="color:${priceColor(it.value)}">— ${it.value}</span>`:""}
+        ? `<a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank">${it.name}</a>`
+        : it.name}
+      ${it.value?`<span class="item-value">— ${it.value}</span>`:""}
       ${it.quest.length?`<span class="quest-tag">[${it.quest.join(", ")}]</span>`:""}
       <button class="btn-small" data-toggle="${it.key}">${expanded?"Hide":"Full"} Info</button>
-    </div>`;
+    </div>
 
-  if(expanded){
-    if(it.notes) html+=`<div class="notes"><strong>Notes:</strong> ${it.notes}</div>`;
-    if(it.recycle.length) html+=`<div class="line"><strong>Recycles To:</strong> ${it.recycle.join(", ")}</div>`;
-    if(it.salvage.length) html+=`<div class="line"><strong>Salvages To:</strong> ${it.salvage.join(", ")}</div>`;
-    if(crafts.length) html+=`<div class="line"><strong>Crafts To:</strong> ${crafts.join(", ")}</div>`;
-  }
-
-  html+=`<hr></div>`;
+    ${it.recycle.length?`<div class="line"><strong>Recycles To:</strong> ${it.recycle.join(", ")}</div>`:""}
+    ${it.salvage.length?`<div class="line"><strong>Salvages To:</strong> ${it.salvage.join(", ")}</div>`:""}
+    ${crafts.length?`<div class="line"><strong>Crafts To:</strong> ${crafts.join(", ")}</div>`:""}
+    ${expanded?renderFullInfo(it):""}
+    <hr>
+  </div>`;
   return html;
 }
 
@@ -278,38 +263,6 @@ function renderAll(){
   }
   list.sort((a,b)=>(+b.value||0)-(+a.value||0));
   renderList(list);
-}
-
-function renderWorkshops(){
-  dom.filters.style.display="none";
-  dom.result.innerHTML="";
-  const groups={};
-
-  for(const c of state.crafting){
-    if(!groups[c.at]) groups[c.at]=[];
-    groups[c.at].push(c);
-  }
-
-  for(const at of Object.keys(groups)){
-    dom.result.insertAdjacentHTML("beforeend",`
-      <div class="section-header">${at}</div>
-      <table>
-        <tr>
-          <th>Item Crafted</th>
-          <th>Category</th>
-          <th>Ingredients</th>
-          <th>Workshop Level</th>
-        </tr>
-        ${groups[at].map(c=>`
-          <tr>
-            <td>${c.crafted}</td>
-            <td>${c.category}</td>
-            <td>${c.ingredients.join(", ")}</td>
-            <td>${c.level||""}</td>
-          </tr>`).join("")}
-      </table>
-    `);
-  }
 }
 
 /* ================= EVENTS ================= */
@@ -346,11 +299,6 @@ dom.result.onclick=e=>{
   const k=b.dataset.toggle;
   state.expanded.has(k)?state.expanded.delete(k):state.expanded.add(k);
   state.view==="all"?renderAll():renderSearch(norm(dom.search.value));
-};
-
-dom.workshops.onclick=()=>{
-  state.view="workshops";
-  renderWorkshops();
 };
 
 /* ================= BOOT ================= */
