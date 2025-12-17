@@ -7,31 +7,47 @@
 <script async src="https://cdn.metaforge.app/arcraiders-tooltips.min.js"></script>
 
 <style>
-body{background:#000;color:#fff;font-family:Segoe UI,sans-serif;padding:20px;max-width:1100px;margin:0 auto;}
+body{background:#000;color:#fff;font-family:Segoe UI,sans-serif;padding:20px;max-width:1100px;margin:0 auto}
 .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .top-buttons{display:flex;gap:10px;flex-wrap:wrap}
-.top-buttons a,.top-buttons button{background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:6px 12px;cursor:pointer;text-decoration:none}
+.top-buttons a,.top-buttons button{
+  background:#222;color:#fff;border:1px solid #444;border-radius:6px;
+  padding:6px 12px;cursor:pointer;text-decoration:none
+}
 .top-buttons a:hover,.top-buttons button:hover{background:#333}
 .status.loading{color:#ff5555}.status.loaded{color:#33cc66}.status.error{color:#ff9933}
+
 .search-row{display:flex;gap:8px;margin-bottom:8px}
 #search{flex:1;font-size:22px;padding:12px}
 #clear-search{padding:10px 14px;font-size:18px}
+
 .all-filters{display:none;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.all-filters button{background:#222;color:#fff;border:1px solid #444;border-radius:6px;padding:6px 10px;cursor:pointer}
+.all-filters button{
+  background:#222;color:#fff;border:1px solid #444;border-radius:6px;
+  padding:6px 10px;cursor:pointer
+}
 .all-filters button.active{background:#444}
+
 .item-block{margin:12px 0 18px}
 .item-title{font-size:26px;font-weight:bold;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .item-title a{text-decoration:none}
 .item-value{font-size:20px}
-.btn-small{background:#222;border:1px solid #444;color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+.btn-small{
+  background:#222;border:1px solid #444;color:#fff;
+  border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer
+}
 .notes{color:#ff6666;margin:6px 0}
 .line{margin:4px 0;font-size:18px}
 .line-small{font-size:14px;color:#ccc}
 .quest-tag{color:#ffd700;margin-left:6px}
 hr{border:1px solid #333;margin:12px 0}
-.section-header{font-size:24px;font-weight:bold;margin-top:24px;border-bottom:1px solid #444}
+
+.section-header{
+  font-size:24px;font-weight:bold;margin-top:24px;
+  border-bottom:1px solid #444;padding-bottom:6px
+}
 table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{border-bottom:1px solid #333;padding:10px}
+th,td{border-bottom:1px solid #333;padding:10px;vertical-align:top}
 th{color:#ffd700;text-align:left}
 </style>
 </head>
@@ -54,13 +70,13 @@ th{color:#ffd700;text-align:left}
 </div>
 
 <div class="all-filters" id="filters">
-  <button data-filter="all" class="active">All (High → Low)</button>
+  <button data-filter="__other__" class="active">Everything else</button>
   <button data-filter="Weapon">Weapon</button>
   <button data-filter="Modification">Modification</button>
   <button data-filter="Blueprint">Blueprint</button>
   <button data-filter="Key">Key</button>
   <button data-filter="Quest Item">Quest Item</button>
-  <button data-filter="__other__">Everything else</button>
+  <button data-filter="all">All (High → Low)</button>
 </div>
 
 <div id="result"></div>
@@ -79,25 +95,35 @@ th{color:#ffd700;text-align:left}
    - Added crafting system and workshops.
 
    2025-12-17
-   - Fixed renderer regression where Show All did nothing.
-   - Restored filter pipeline and persistent filter buttons.
-   - Restored full item info render path in ALL modes.
+   - Fixed Show All rendering regression.
+   - Restored filter pipeline.
+   - Restored Full Info toggle render path.
+
+   2025-12-18
+   - Moved "Everything else" to leftmost filter and made it default.
+   - Moved "All (High → Low)" to the far right.
+   - Fixed Full Info toggle logic.
+   - Fully restored Workshops rendering.
 */
 
 /* ================= CONFIG ================= */
-const ITEMS_CSV="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=1167907621&single=true&output=csv";
-const CRAFTING_CSV="https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=138150246&single=true&output=csv";
+const ITEMS_CSV =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=1167907621&single=true&output=csv";
+
+const CRAFTING_CSV =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=138150246&single=true&output=csv";
 
 /* ================= STATE ================= */
 const state={
   items:[],
-  craftingByIngredient:new Map(),
+  crafting:[],
+  craftsByIngredient:new Map(),
+  expanded:new Set(),
   view:"search",
-  filter:"all",
-  expanded:new Set()
+  filter:"__other__"
 };
 
-/* ================= HELPERS ================= */
+/* ================= DOM ================= */
 const dom={
   result:document.getElementById("result"),
   search:document.getElementById("search"),
@@ -108,24 +134,25 @@ const dom={
   filters:document.getElementById("filters")
 };
 
+/* ================= HELPERS ================= */
 const canon=s=>(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
 const norm=s=>(s||"").trim().toLowerCase();
 
-const rarityColor=r=>{
+function rarityColor(r){
   r=(r||"").toLowerCase();
   if(r.includes("legendary"))return"#ffd700";
   if(r.includes("epic"))return"#ff00ff";
   if(r.includes("rare"))return"#00bfff";
   if(r.includes("uncommon"))return"#00ff00";
   return"#fff";
-};
-const priceColor=v=>{
+}
+function priceColor(v){
   v=+v||0;
   if(v<=1000)return"#fff";
   if(v<=2000)return"#00ff00";
   if(v<=5000)return"#ff69b4";
   return"#ffd700";
-};
+}
 
 /* ================= CSV ================= */
 function parseCsv(t){
@@ -169,8 +196,6 @@ async function loadItems(){
     salvage:[r[idx("salvage1")],r[idx("salvage2")]].filter(Boolean),
     quest:[r[idx("quest1")],r[idx("quest2")],r[idx("quest3")]].filter(Boolean)
   }));
-
-  if(!state.items.length)throw new Error("No items loaded");
 }
 
 async function loadCrafting(){
@@ -178,16 +203,27 @@ async function loadCrafting(){
   const headers=rows.shift().map(canon);
   const idx=h=>headers.indexOf(canon(h));
 
+  state.crafting=[];
+  state.craftsByIngredient.clear();
+
   for(const r of rows){
     const crafted=r[idx("itemcrafted")];
     if(!crafted)continue;
-    for(const col of["ingredient1","ingredient2","ingredient3"]){
-      const raw=r[idx(col)];
-      if(!raw)continue;
-      const name=norm(raw.replace(/×.*$/,""));
-      if(!state.craftingByIngredient.has(name))
-        state.craftingByIngredient.set(name,[]);
-      state.craftingByIngredient.get(name).push(crafted);
+
+    const row={
+      crafted,
+      category:r[idx("category")]||"",
+      at:r[idx("craftedat")]||"",
+      level:r[idx("level")]||"",
+      ingredients:[1,2,3].map(n=>r[idx(`ingredient${n}`)]).filter(Boolean)
+    };
+    state.crafting.push(row);
+
+    for(const ing of row.ingredients){
+      const key=norm(ing.replace(/×.*$/,""));
+      if(!state.craftsByIngredient.has(key))
+        state.craftsByIngredient.set(key,[]);
+      state.craftsByIngredient.get(key).push(crafted);
     }
   }
 }
@@ -195,26 +231,31 @@ async function loadCrafting(){
 /* ================= RENDER ================= */
 function renderItem(it){
   const expanded=state.expanded.has(it.key);
-  const crafts=state.craftingByIngredient.get(it.key)||[];
+  const crafts=state.craftsByIngredient.get(it.key)||[];
 
-  return `
+  let html=`
   <div class="item-block">
     <div class="item-title">
       ${it.apiId
-        ? `<a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank"><span style="color:${rarityColor(it.rarity)}">${it.name}</span></a>`
+        ? `<a href="https://metaforge.app/arc-raiders/database/item/${it.apiId}" target="_blank">
+            <span style="color:${rarityColor(it.rarity)}">${it.name}</span>
+          </a>`
         : `<span style="color:${rarityColor(it.rarity)}">${it.name}</span>`
       }
       ${it.value?`<span class="item-value" style="color:${priceColor(it.value)}">— ${it.value}</span>`:""}
       ${it.quest.length?`<span class="quest-tag">[${it.quest.join(", ")}]</span>`:""}
-      <button class="btn-small" onclick="toggle('${it.key}')">${expanded?"Hide":"Full"} Info</button>
-    </div>
+      <button class="btn-small" data-toggle="${it.key}">${expanded?"Hide":"Full"} Info</button>
+    </div>`;
 
-    ${it.notes?`<div class="notes"><strong>Notes:</strong> ${it.notes}</div>`:""}
-    ${it.recycle.length?`<div class="line"><strong>Recycles To:</strong> ${it.recycle.join(", ")}</div>`:""}
-    ${it.salvage.length?`<div class="line"><strong>Salvages To:</strong> ${it.salvage.join(", ")}</div>`:""}
-    ${crafts.length?`<div class="line"><strong>Crafts To:</strong> ${crafts.join(", ")}</div>`:""}
-    <hr>
-  </div>`;
+  if(expanded){
+    if(it.notes) html+=`<div class="notes"><strong>Notes:</strong> ${it.notes}</div>`;
+    if(it.recycle.length) html+=`<div class="line"><strong>Recycles To:</strong> ${it.recycle.join(", ")}</div>`;
+    if(it.salvage.length) html+=`<div class="line"><strong>Salvages To:</strong> ${it.salvage.join(", ")}</div>`;
+    if(crafts.length) html+=`<div class="line"><strong>Crafts To:</strong> ${crafts.join(", ")}</div>`;
+  }
+
+  html+=`<hr></div>`;
+  return html;
 }
 
 function renderList(list){
@@ -239,24 +280,55 @@ function renderAll(){
   renderList(list);
 }
 
-/* ================= EVENTS ================= */
-window.toggle=k=>{
-  state.expanded.has(k)?state.expanded.delete(k):state.expanded.add(k);
-  state.view==="all"?renderAll():renderSearch(norm(dom.search.value))
-};
+function renderWorkshops(){
+  dom.filters.style.display="none";
+  dom.result.innerHTML="";
+  const groups={};
 
+  for(const c of state.crafting){
+    if(!groups[c.at]) groups[c.at]=[];
+    groups[c.at].push(c);
+  }
+
+  for(const at of Object.keys(groups)){
+    dom.result.insertAdjacentHTML("beforeend",`
+      <div class="section-header">${at}</div>
+      <table>
+        <tr>
+          <th>Item Crafted</th>
+          <th>Category</th>
+          <th>Ingredients</th>
+          <th>Workshop Level</th>
+        </tr>
+        ${groups[at].map(c=>`
+          <tr>
+            <td>${c.crafted}</td>
+            <td>${c.category}</td>
+            <td>${c.ingredients.join(", ")}</td>
+            <td>${c.level||""}</td>
+          </tr>`).join("")}
+      </table>
+    `);
+  }
+}
+
+/* ================= EVENTS ================= */
 dom.search.oninput=()=>{
   state.view="search";
   dom.filters.style.display="none";
-  renderSearch(norm(dom.search.value))
+  renderSearch(norm(dom.search.value));
 };
 
 dom.clear.onclick=()=>{dom.search.value="";dom.result.innerHTML=""};
 
 dom.showAll.onclick=()=>{
   state.view="all";
+  state.filter="__other__";
   dom.filters.style.display="flex";
-  renderAll()
+  dom.filters.querySelectorAll("button").forEach(b=>{
+    b.classList.toggle("active",b.dataset.filter==="__other__")
+  });
+  renderAll();
 };
 
 dom.filters.onclick=e=>{
@@ -265,11 +337,20 @@ dom.filters.onclick=e=>{
   dom.filters.querySelectorAll("button").forEach(x=>x.classList.remove("active"));
   b.classList.add("active");
   state.filter=b.dataset.filter;
-  renderAll()
+  renderAll();
+};
+
+dom.result.onclick=e=>{
+  const b=e.target.closest("button[data-toggle]");
+  if(!b)return;
+  const k=b.dataset.toggle;
+  state.expanded.has(k)?state.expanded.delete(k):state.expanded.add(k);
+  state.view==="all"?renderAll():renderSearch(norm(dom.search.value));
 };
 
 dom.workshops.onclick=()=>{
-  dom.result.innerHTML="<div class='line'>Workshops view unchanged.</div>"
+  state.view="workshops";
+  renderWorkshops();
 };
 
 /* ================= BOOT ================= */
