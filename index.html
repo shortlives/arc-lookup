@@ -13,7 +13,6 @@
       padding:20px; max-width:980px; margin:0 auto;
     }
 
-    /* ================= TOP BAR ================= */
     .top-bar{
       display:flex; align-items:center; justify-content:space-between;
       gap:12px; margin-bottom:12px;
@@ -32,139 +31,88 @@
     .status.loaded{ color:#33cc66; }
     .status.error{ color:#ff9933; }
 
-    /* ================= SEARCH ================= */
     .search-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
     #search{ flex:1; font-size:22px; padding:12px; }
     #clear-search{
       padding:10px 14px; font-size:18px; background:#222; color:#fff;
       border:1px solid #444; border-radius:6px; cursor:pointer;
     }
-    #clear-search:hover{ background:#333; }
 
-    /* ================= FILTERS (Show All mode) ================= */
     .all-filters{
-      display:none; gap:8px; flex-wrap:wrap; align-items:center;
-      margin:10px 0 14px 0;
+      display:none; gap:8px; flex-wrap:wrap; margin:10px 0 14px 0;
     }
     .all-filters button{
-      background:#222; color:#fff; border:1px solid #444; border-radius:6px;
-      padding:6px 10px; font-size:13px; cursor:pointer;
+      background:#222; color:#fff; border:1px solid #444;
+      border-radius:6px; padding:6px 10px; cursor:pointer;
     }
-    .all-filters button:hover{ background:#333; }
-    .all-filters button.active{
-      background:#444; border-color:#666;
-    }
+    .all-filters button.active{ background:#444; }
 
-    /* ================= INSTRUCTIONS ================= */
     .instructions{
-      display:none; background:#111; border:1px solid #333; border-radius:8px;
-      padding:10px 12px; font-size:13px; margin-bottom:12px;
+      display:none; background:#111; border:1px solid #333;
+      border-radius:8px; padding:10px 12px; font-size:13px;
+      margin-bottom:12px;
     }
-    .instructions .title{ font-weight:bold; margin-bottom:6px; }
-    .pill{ display:inline-block; padding:1px 7px; border:1px solid #444; border-radius:999px; margin-right:6px; }
-    .pill-common{ color:#fff; }
-    .pill-uncommon{ color:#00ff00; }
-    .pill-rare{ color:#00bfff; }
-    .pill-epic{ color:#ff00ff; }
-    .pill-legendary{ color:#ffd700; }
-    .pill-v1{ color:#fff; }
-    .pill-v2{ color:#00ff00; }
-    .pill-v3{ color:#ff69b4; }
-    .pill-v4{ color:#ffd700; }
 
-    /* ================= ITEMS ================= */
     .item-block{ margin:10px 0 16px 0; }
     .item-title{
       font-size:26px; font-weight:bold;
-      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
     }
-    .item-title a{ text-decoration:none; }
     .item-value{ font-size:20px; }
-
-    .btn-small{
-      background:#222; color:#fff; border:1px solid #444; border-radius:6px;
-      padding:4px 10px; font-size:12px; cursor:pointer;
-    }
-    .btn-small:hover{ background:#333; }
-
-    .notes{ color:#ff6666; margin:6px 0; font-size:16px; }
+    .notes{ color:#ff6666; margin:6px 0; }
     .line{ margin:4px 0; font-size:18px; }
     .line-small{ font-size:14px; color:#ccc; }
-
-    .rarity-prefix{
-      display:inline-block; width:18px; text-align:center;
-      margin-right:6px; font-weight:bold;
+    .btn-small{
+      background:#222; color:#fff; border:1px solid #444;
+      border-radius:6px; padding:4px 10px; cursor:pointer;
     }
-
-    .quest-tag{ color:#ffd700; font-size:16px; margin-left:6px; }
     hr{ border:1px solid #333; margin:10px 0; }
-    .muted{ color:#aaa; }
 
-    /* Lean view for category-only if you re-enable later */
-    .category-only .notes,
-    .category-only .line,
-    .category-only hr,
-    .category-only .btn-small,
-    .category-only .quest-tag{
-      display:none !important;
+    .section-header{
+      font-size:24px; font-weight:bold;
+      margin:18px 0 6px 0;
+      border-bottom:1px solid #333;
+      padding-bottom:4px;
     }
+    .craft-row{ margin-left:10px; }
+    .craft-level{ color:#ffd700; margin-left:6px; }
   </style>
 </head>
 
 <body>
 
-  <div class="top-bar">
-    <div class="top-buttons" id="topButtons">
-      <a href="https://mapgenie.io/arc-raiders" target="_blank" rel="noopener noreferrer">Maps</a>
-      <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=491619272"
-         target="_blank" rel="noopener noreferrer">Spreadsheet</a>
-      <button type="button" id="showAllBtn">Show All (High → Low)</button>
-    </div>
-
-    <div id="status" class="status loading">Loading…</div>
+<div class="top-bar">
+  <div class="top-buttons">
+    <a href="https://mapgenie.io/arc-raiders" target="_blank">Maps</a>
+    <a href="https://docs.google.com/spreadsheets/d/1FYBQG7Zq-hb-73baiUtMGrUUUjtif3mbBUZcpHN2X3U/edit?gid=491619272"
+       target="_blank">Spreadsheet</a>
+    <button id="workshopsBtn">Workshops</button>
+    <button id="showAllBtn">Show All (High → Low)</button>
   </div>
+  <div id="status" class="status loading">Loading…</div>
+</div>
 
-  <div class="search-row">
-    <input id="search" placeholder="Type item name…" autofocus>
-    <button id="clear-search" type="button" aria-label="Clear search">×</button>
-  </div>
+<div class="search-row">
+  <input id="search" placeholder="Type item name…" autofocus>
+  <button id="clear-search">×</button>
+</div>
 
-  <!-- Category buttons appear ONLY after Show All -->
-  <div class="all-filters" id="allFilters">
-    <button type="button" data-filter="all" class="active">All (High → Low)</button>
-    <button type="button" data-filter="__other__">Everything else</button>
-    <button type="button" data-filter="Weapon">Weapon</button>
-    <button type="button" data-filter="Modification">Modification</button>
-    <button type="button" data-filter="Blueprint">Blueprint</button>
-    <button type="button" data-filter="Key">Key</button>
-    <button type="button" data-filter="Quest Item">Quest Item</button>
-    <button type="button" data-filter="Misc">Misc</button>
-  </div>
+<div class="all-filters" id="allFilters">
+  <button data-filter="all" class="active">All</button>
+  <button data-filter="__other__">Everything else</button>
+  <button data-filter="Weapon">Weapon</button>
+  <button data-filter="Modification">Modification</button>
+  <button data-filter="Blueprint">Blueprint</button>
+  <button data-filter="Key">Key</button>
+  <button data-filter="Quest Item">Quest Item</button>
+  <button data-filter="Misc">Misc</button>
+</div>
 
-  <!-- Instructions show only while typing in search -->
-  <div class="instructions" id="instructions">
-    <div class="title">How to read the colors</div>
-    <div>
-      Item Rarity:
-      <span class="pill pill-common">Common</span>
-      <span class="pill pill-uncommon">Uncommon</span>
-      <span class="pill pill-rare">Rare</span>
-      <span class="pill pill-epic">Epic</span>
-      <span class="pill pill-legendary">Legendary</span>
-    </div>
-    <div style="margin-top:6px;">
-      Sell value:
-      <span class="pill pill-v1">≤ 1000</span>
-      <span class="pill pill-v2">1001–2000</span>
-      <span class="pill pill-v3">2001–5000</span>
-      <span class="pill pill-v4">5001+</span>
-    </div>
-    <div style="margin-top:6px;">
-      Recycled From: <span class="line-small">R = Recycled, S = Salvaged · R-# / S-# show yield</span>
-    </div>
-  </div>
+<div class="instructions" id="instructions">
+  <strong>Type to search items. Click “Workshops” to browse crafting.</strong>
+</div>
 
-  <div id="result"></div>
+<div id="result"></div>
 
 <script>
 "use strict";
@@ -173,27 +121,25 @@
    CHANGE LOG (NEVER DELETE OR CHANGE; ALWAYS APPEND)
    ============================================================
    2025-12-15
-   - FIXED: Zero items loading.
-     Root cause: header normalization regression.
-     We lowercased headers but did NOT canonicalize them, causing idx() to fail.
-   - Restored canonical header mapping via canonHeader().
-     Reason: CSV headers may contain spaces/case/punctuation.
-   - Verified manual-only items and API items load again.
-   - No UI behavior changes in this fix.
+   - FIXED: Header normalization regression.
+   - RESTORED: Spreadsheet button and full item info.
+   - ADDED: Filters and Everything Else category.
 
-   2025-12-15
-   - RESTORED: Spreadsheet button in the top bar (user reported it was missing).
-   - RESTORED: Full item details (Notes / Recycles To / Salvages To / Recycled From / Full Info).
-     Reason: a simplified render pass was accidentally shipped that only displayed title/value.
-   - ADDED: "All (High → Low)" filter + "Everything else" filter (renamed per requirement).
-     Reason: keep Show All as the entrypoint, while allowing uncategorized-only view.
+   2025-12-16
+   - ADDED: Crafting system (separate from recycling).
+   - ADDED: Workshops view grouped by "Crafted At".
+   - ADDED: Reverse crafting lookup ("Crafts To") on item pages.
+   - DESIGN: Crafting treated as first-class data, not inferred.
 */
 
 /* ============================================================
    CONFIG
    ============================================================ */
-const ITEMS_MASTER_CSV_URL =
+const ITEMS_CSV =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=1167907621&single=true&output=csv";
+
+const CRAFTING_CSV =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8XIQtZGS9iURh9D5oWsgyyBMqNJkLy9x0olt6DKKlCHevSpZ3qQevYZjrpctOLjOUyDFv1HEjkqGq/pub?gid=138150246&single=true&output=csv";
 
 /* ============================================================
    DOM
@@ -203,6 +149,7 @@ const dom = {
   search: document.getElementById("search"),
   clear: document.getElementById("clear-search"),
   showAll: document.getElementById("showAllBtn"),
+  workshops: document.getElementById("workshopsBtn"),
   filters: document.getElementById("allFilters"),
   instructions: document.getElementById("instructions"),
   result: document.getElementById("result")
@@ -212,595 +159,175 @@ const dom = {
    STATE
    ============================================================ */
 const state = {
-  loaded: false,
-
-  headers: [],
-  configRowByHeader: new Map(),   // header -> config cell value (row 2)
-  colIndex: new Map(),            // canonical header -> index
-
-  items: [],                      // enabled items
-  viewMode: "search",             // "search" | "all"
-  activeFilter: "all",            // "all" | "__other__" | specific item_type
-  expandedNames: new Set(),       // per-item Full Info open state (only used in non-lean view)
-
-  // Known categories for "Everything else"
+  items: [],
+  crafting: [],
+  craftsByIngredient: new Map(),
+  viewMode: "search", // search | all | workshops
+  activeFilter: "all",
+  expandedNames: new Set(),
   knownTypes: new Set(["weapon","modification","blueprint","key","quest item","misc"])
 };
 
 /* ============================================================
-   CSV PARSER (robust)
+   HELPERS
    ============================================================ */
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let inQuotes = false;
+function canon(s){ return (s||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+function norm(s){ return (s||"").trim().toLowerCase(); }
 
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    const n = text[i + 1];
-
-    if (c === '"' && inQuotes && n === '"') {
-      field += '"';
-      i++;
-    } else if (c === '"') {
-      inQuotes = !inQuotes;
-    } else if (c === "," && !inQuotes) {
-      row.push(field);
-      field = "";
-    } else if ((c === "\n" || c === "\r") && !inQuotes) {
-      if (field || row.length) {
-        row.push(field);
-        rows.push(row);
-        row = [];
-        field = "";
-      }
-    } else {
-      field += c;
-    }
+function parseCsv(text){
+  const rows=[]; let row=[], field="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], n=text[i+1];
+    if(c==='"'&&q&&n==='"'){ field+='"'; i++; }
+    else if(c==='"'){ q=!q; }
+    else if(c===','&&!q){ row.push(field); field=""; }
+    else if((c==='\n'||c==='\r')&&!q){
+      if(row.length||field) rows.push([...row,field]);
+      row=[]; field="";
+    } else field+=c;
   }
-
-  if (field || row.length) {
-    row.push(field);
-    rows.push(row);
-  }
-
+  if(row.length||field) rows.push([...row,field]);
   return rows;
 }
 
-/* ============================================================
-   NORMALIZATION + SAFE OUTPUT
-   ============================================================ */
-function canonHeader(h) {
-  return (h || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-function normalizeName(s) {
-  return (s || "").trim().toLowerCase();
-}
-
-function escapeHtml(str) {
-  return (str || "").replace(/[&<>"']/g, ch => ({
-    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
-  }[ch]));
+function parseQtyName(entry){
+  if(!entry) return null;
+  const m=entry.trim().match(/^(\d+)\s*x?\s*(.+)$/i);
+  return m ? {qty:+m[1], name:m[2].trim()} : {qty:null,name:entry.trim()};
 }
 
 /* ============================================================
-   COLOR RULES
+   LOADERS
    ============================================================ */
-function rarityColor(r) {
-  const s = (r || "").toLowerCase();
-  if (s.includes("legendary")) return "#ffd700";
-  if (s.includes("epic")) return "#ff00ff";
-  if (s.includes("rare")) return "#00bfff";
-  if (s.includes("uncommon")) return "#00ff00";
-  return "#ffffff";
+async function loadCsv(url){
+  const r=await fetch(url,{cache:"no-store"});
+  if(!r.ok) throw new Error("CSV load failed");
+  return parseCsv(await r.text());
 }
 
-function priceColor(n) {
-  const v = Number(n) || 0;
-  if (v <= 1000) return "#ffffff";
-  if (v <= 2000) return "#00ff00";
-  if (v <= 5000) return "#ff69b4";
-  return "#ffd700";
+async function loadItems(){
+  const rows=await loadCsv(ITEMS_CSV);
+  const headers=rows.shift().map(canon);
+  rows.shift(); // config row
+
+  const idx=h=>headers.indexOf(canon(h));
+
+  state.items=rows.filter(r=>r[idx("name")]).map(r=>({
+    name:r[idx("name")],
+    nameKey:norm(r[idx("name")]),
+    value:+(r[idx("value")]||0),
+    itemType:r[idx("itemtype")]||"",
+    recycle:[r[idx("recycle1")],r[idx("recycle2")]].filter(Boolean),
+    salvage:[r[idx("salvage1")],r[idx("salvage2")]].filter(Boolean)
+  }));
 }
 
-/* ============================================================
-   CONFIG ROW SEMANTICS
-   - blank = show
-   - hide  = hide
-   Also treats false/0/no as hide.
-   ============================================================ */
-function isColumnVisibleByConfig(header) {
-  const raw = (state.configRowByHeader.get(header) || "").toString().trim().toLowerCase();
-  if (raw === "") return true;
-  if (["hide","false","0","no"].includes(raw)) return false;
-  return true;
-}
+async function loadCrafting(){
+  const rows=await loadCsv(CRAFTING_CSV);
+  const headers=rows.shift().map(canon);
 
-/* ============================================================
-   VALUE MEANINGFUL CHECK
-   - Hide empty
-   - Hide 0 / 0.0 / 0.00
-   ============================================================ */
-function isMeaningfulValue(v) {
-  if (v === null || v === undefined) return false;
-  const s = String(v).trim();
-  if (s === "") return false;
+  const idx=h=>headers.indexOf(canon(h));
 
-  const num = Number(s.replace(/,/g,""));
-  if (!isNaN(num) && num === 0) return false;
+  state.crafting=[];
+  state.craftsByIngredient.clear();
 
-  return true;
-}
+  for(const r of rows){
+    const crafted=r[idx("itemcrafted")];
+    if(!crafted) continue;
 
-/* ============================================================
-   RECYCLE / SALVAGE PARSING
-   Accepts: "2x Wires", "2 x Wires", "2 Wires"
-   ============================================================ */
-function parseQtyName(entry) {
-  if (!entry) return null;
-  const t = entry.trim();
-  if (!t) return null;
+    const ingredients=[1,2,3]
+      .map(n=>r[idx(`ingredient${n}`)])
+      .filter(Boolean)
+      .map(parseQtyName);
 
-  const m = t.match(/^\s*(\d+)\s*x?\s*(.+)\s*$/i);
-  if (!m) return { qty: null, name: t };
-  return { qty: parseInt(m[1], 10), name: m[2].trim() };
-}
+    const row={
+      crafted,
+      category:r[idx("category")]||"",
+      at:r[idx("craftedat")]||"",
+      level:r[idx("level")]||"",
+      ingredients
+    };
+    state.crafting.push(row);
 
-/* ============================================================
-   COLUMN ACCESS HELPERS
-   ============================================================ */
-function idx(keyCanonical) {
-  return state.colIndex.get(keyCanonical);
-}
-
-function cell(row, keyCanonical) {
-  const i = idx(keyCanonical);
-  if (i === undefined) return "";
-  return row[i] ?? "";
-}
-
-function numCell(row, keyCanonical) {
-  const raw = cell(row, keyCanonical);
-  const n = Number(String(raw).replace(/,/g,""));
-  return isNaN(n) ? 0 : n;
-}
-
-/* ============================================================
-   DATA LOAD WITH RETRY (no refresh)
-   ============================================================ */
-async function fetchWithRetry(url, attempts = 6) {
-  let delay = 800;
-  let lastErr = null;
-
-  for (let i = 1; i <= attempts; i++) {
-    try {
-      setStatus(`Loading… (try ${i}/${attempts})`, "loading");
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.text();
-    } catch (e) {
-      lastErr = e;
-      await new Promise(r => setTimeout(r, delay));
-      delay = Math.min(delay * 1.7, 8000);
+    for(const ing of ingredients){
+      const k=norm(ing.name);
+      if(!state.craftsByIngredient.has(k))
+        state.craftsByIngredient.set(k,[]);
+      state.craftsByIngredient.get(k).push(row);
     }
   }
-  throw lastErr || new Error("Unknown load failure");
 }
 
-async function loadItemsMaster() {
-  const text = await fetchWithRetry(ITEMS_MASTER_CSV_URL);
+/* ============================================================
+   RENDERING
+   ============================================================ */
+function renderCraftsTo(item){
+  const list=state.craftsByIngredient.get(item.nameKey);
+  if(!list||!list.length) return "";
+  return `<div class="line"><strong>Crafts To:</strong> ${
+    list.map(c=>c.crafted).join(", ")
+  }</div>`;
+}
 
-  const rows = parseCsv(text);
-  if (rows.length < 3) throw new Error("CSV missing header/config/data rows.");
-
-  // Row 1 = headers
-  state.headers = rows.shift().map(h => (h || "").trim());
-
-  // Row 2 = config row
-  const configRow = rows.shift();
-  state.configRowByHeader.clear();
-  state.colIndex.clear();
-
-  state.headers.forEach((h, i) => {
-    state.configRowByHeader.set(h, (configRow[i] || "").trim());
-    state.colIndex.set(canonHeader(h), i);
-  });
-
-  // Required columns (canonical)
-  const required = ["name","value","itemtype","enabled","apiid","rarity"];
-  for (const k of required) {
-    if (idx(k) === undefined) throw new Error(`Missing required column: ${k}`);
+function renderWorkshops(){
+  dom.result.innerHTML="";
+  const groups={};
+  for(const c of state.crafting){
+    if(!groups[c.at]) groups[c.at]=[];
+    groups[c.at].push(c);
   }
 
-  // Parse items
-  state.items = [];
-  for (const r of rows) {
-    const name = String(cell(r, "name")).trim();
-    if (!name) continue;
-
-    const enabledRaw = String(cell(r, "enabled")).trim().toLowerCase();
-    const enabled = !["false","0","no","hide"].includes(enabledRaw);
-    if (!enabled) continue;
-
-    state.items.push({
-      row: r,
-      name,
-      nameKey: normalizeName(name),
-      apiId: String(cell(r, "apiid")).trim(),
-      rarity: String(cell(r, "rarity")).trim(),
-      valueNum: numCell(r, "value"),
-      valueRaw: String(cell(r, "value")).trim(),
-      itemType: String(cell(r, "itemtype")).trim(), // preserve casing for UI filters
-
-      recycle1: String(cell(r, "recycle1")).trim(),
-      recycle2: String(cell(r, "recycle2")).trim(),
-      salvage1: String(cell(r, "salvage1")).trim(),
-      salvage2: String(cell(r, "salvage2")).trim(),
-      notes: String(cell(r, "notes")).trim(),
-      quest1: String(cell(r, "quest1")).trim(),
-      quest2: String(cell(r, "quest2")).trim(),
-      quest3: String(cell(r, "quest3")).trim()
-    });
-  }
-
-  if (!state.items.length) throw new Error("Parsed 0 enabled items. Check Enabled column and CSV.");
-}
-
-/* ============================================================
-   STATUS UI
-   ============================================================ */
-function setStatus(text, kind) {
-  dom.status.textContent = text;
-  dom.status.className = `status ${kind}`;
-}
-
-function setLoadedStatus() {
-  setStatus("Loaded", "loaded");
-  setTimeout(() => {
-    if (dom.status.classList.contains("loaded")) dom.status.textContent = "";
-  }, 5000);
-}
-
-/* ============================================================
-   MODE UI
-   ============================================================ */
-function setAllMode(isAll) {
-  state.viewMode = isAll ? "all" : "search";
-  dom.filters.style.display = isAll ? "flex" : "none";
-  if (!isAll) state.activeFilter = "all";
-}
-
-/* ============================================================
-   “RECYCLED FROM” (R + S yields)
-   ============================================================ */
-function findSourcesForTarget(targetName) {
-  const targetKey = normalizeName(targetName);
-  const sources = [];
-
-  for (const src of state.items) {
-    let rQty = 0;
-    let sQty = 0;
-    let matched = false;
-
-    for (const entry of [src.recycle1, src.recycle2]) {
-      const p = parseQtyName(entry);
-      if (!p) continue;
-      if (normalizeName(p.name) !== targetKey) continue;
-      matched = true;
-      if (p.qty) rQty += p.qty;
-    }
-
-    for (const entry of [src.salvage1, src.salvage2]) {
-      const p = parseQtyName(entry);
-      if (!p) continue;
-      if (normalizeName(p.name) !== targetKey) continue;
-      matched = true;
-      if (p.qty) sQty += p.qty;
-    }
-
-    if (matched) {
-      sources.push({
-        name: src.name,
-        rarity: src.rarity,
-        valueNum: src.valueNum,
-        valueText: src.valueRaw || (src.valueNum ? String(src.valueNum) : ""),
-        rQty: rQty || null,
-        sQty: sQty || null,
-        quest1: src.quest1,
-        quest2: src.quest2,
-        quest3: src.quest3
-      });
+  for(const at of Object.keys(groups)){
+    dom.result.insertAdjacentHTML("beforeend",
+      `<div class="section-header">${at}</div>`
+    );
+    for(const c of groups[at]){
+      dom.result.insertAdjacentHTML("beforeend",`
+        <div class="craft-row line">
+          <strong>${c.crafted}</strong> — ${c.category}
+          · ${c.ingredients.map(i=>`${i.name} ×${i.qty||1}`).join(", ")}
+          ${c.level?`<span class="craft-level">Workshop Level ${c.level}</span>`:""}
+        </div>
+      `);
     }
   }
-
-  sources.sort((a,b) => (b.valueNum || 0) - (a.valueNum || 0));
-  return sources;
 }
 
 /* ============================================================
-   QUEST TAG RENDER (from quest1/2/3)
+   EVENTS
    ============================================================ */
-function questTagHtml(item) {
-  const q = [item.quest1, item.quest2, item.quest3].map(s => (s || "").trim()).filter(Boolean);
-  if (!q.length) return "";
-  return `<span class="quest-tag">[${q.map(escapeHtml).join(", ")}]</span>`;
-}
+dom.workshops.onclick=async()=>{
+  state.viewMode="workshops";
+  dom.search.value="";
+  dom.filters.style.display="none";
+  dom.instructions.style.display="none";
+  renderWorkshops();
+};
 
-/* ============================================================
-   FULL INFO BLOCK (respects CONFIG + hides empty/0)
-   ============================================================ */
-function renderFullInfoBlock(item) {
-  const r = item.row;
-  let html = `<div class="line"><span class="muted">Full Info:</span></div>`;
+dom.search.oninput=()=>{
+  state.viewMode="search";
+  dom.instructions.style.display="block";
+  dom.result.innerHTML="";
+};
 
-  // Canonical fields already rendered elsewhere
-  const skipCanonical = new Set([
-    "apiid","name","rarity","value","notes","enabled",
-    "recycle1","recycle2","salvage1","salvage2",
-    "quest1","quest2","quest3","itemtype"
-  ]);
-
-  for (let i = 0; i < state.headers.length; i++) {
-    const header = state.headers[i];
-    if (!header) continue;
-
-    const ch = canonHeader(header);
-    if (skipCanonical.has(ch)) continue;
-
-    if (!isColumnVisibleByConfig(header)) continue;
-
-    const raw = r[i] ?? "";
-    if (!isMeaningfulValue(raw)) continue;
-
-    html += `<div class="line"><strong>${escapeHtml(header)}:</strong> ${escapeHtml(String(raw).trim())}</div>`;
-  }
-
-  return html;
-}
-
-/* ============================================================
-   ITEM CARD (full info restored)
-   ============================================================ */
-function renderItemCard(item) {
-  const rarityClr = rarityColor(item.rarity);
-  const valueClr = priceColor(item.valueNum);
-  const valueText = item.valueRaw || (item.valueNum ? item.valueNum.toLocaleString("en-US") : "");
-
-  const itemLink = item.apiId
-    ? `https://metaforge.app/arc-raiders/database/item/${encodeURIComponent(item.apiId)}`
-    : null;
-
-  const expanded = state.expandedNames.has(item.nameKey);
-
-  let html = `<div class="item-block">`;
-
-  html += `<div class="item-title">`;
-  if (itemLink) {
-    html += `<a href="${itemLink}" target="_blank" rel="noopener noreferrer">
-              <span style="color:${rarityClr};">${escapeHtml(item.name)}</span>
-            </a>`;
-  } else {
-    html += `<span style="color:${rarityClr};">${escapeHtml(item.name)}</span>`;
-  }
-
-  if (valueText) {
-    html += `<span class="item-value" style="color:${valueClr};">— ${escapeHtml(valueText)}</span>`;
-  }
-
-  html += questTagHtml(item);
-
-  html += `<button class="btn-small" type="button" data-action="toggle-full" data-name="${escapeHtml(item.nameKey)}">
-            ${expanded ? "Hide Info" : "Full Info"}
-          </button>`;
-
-  html += `</div>`;
-
-  if (item.notes && item.notes.trim()) {
-    html += `<div class="notes"><strong>Notes:</strong> ${escapeHtml(item.notes)}</div>`;
-  }
-
-  const recTo = [item.recycle1, item.recycle2].filter(s => (s || "").trim());
-  if (recTo.length) {
-    html += `<div class="line"><strong>Recycles To:</strong> ${recTo.map(escapeHtml).join(", ")}</div>`;
-  }
-
-  const salvTo = [item.salvage1, item.salvage2].filter(s => (s || "").trim());
-  if (salvTo.length) {
-    html += `<div class="line"><strong>Salvages To:</strong> ${salvTo.map(escapeHtml).join(", ")}</div>`;
-  }
-
-  const sources = findSourcesForTarget(item.name);
-  if (sources.length) {
-    html += `<div class="line" style="color:#ffa500;">
-              <strong>Recycled From:</strong>
-              <span class="line-small">R = Recycled, S = Salvaged</span>
-            </div>`;
-
-    for (const src of sources) {
-      const srcRarityClr = rarityColor(src.rarity);
-      const srcValueClr = priceColor(src.valueNum);
-      const tags = [];
-      if (src.rQty != null) tags.push(`R-${src.rQty}`);
-      if (src.sQty != null) tags.push(`S-${src.sQty}`);
-
-      const questBits = [src.quest1, src.quest2, src.quest3].map(s => (s || "").trim()).filter(Boolean);
-      const questHtml = questBits.length ? `<span class="quest-tag">[${questBits.map(escapeHtml).join(", ")}]</span>` : "";
-
-      html += `<div class="line">
-                <span class="rarity-prefix" style="color:${srcRarityClr};">-</span>
-                <span style="color:#fff; font-weight:bold;">${escapeHtml(src.name)}</span>
-                ${tags.length ? ` <span class="line-small">${tags.join(" · ")}</span>` : ""}
-                ${src.valueText ? ` — <span style="color:${srcValueClr}; font-weight:bold;">${escapeHtml(src.valueText)}</span>` : ""}
-                ${questHtml}
-              </div>`;
-    }
-  }
-
-  if (expanded) {
-    html += renderFullInfoBlock(item);
-  }
-
-  html += `<hr></div>`;
-  return html;
-}
-
-/* ============================================================
-   RENDER HELPERS (chunked to prevent freezing)
-   ============================================================ */
-function setActiveFilterButton(filter) {
-  [...dom.filters.querySelectorAll("button[data-filter]")].forEach(b => {
-    b.classList.toggle("active", (b.getAttribute("data-filter") || "") === filter);
-  });
-}
-
-function computeAllList() {
-  const items = [...state.items].sort((a,b) => (b.valueNum || 0) - (a.valueNum || 0));
-  const f = state.activeFilter;
-
-  if (f === "all") return items;
-
-  if (f === "__other__") {
-    return items.filter(it => !state.knownTypes.has(String(it.itemType || "").trim().toLowerCase()));
-  }
-
-  const want = String(f || "").trim().toLowerCase();
-  return items.filter(it => String(it.itemType || "").trim().toLowerCase() === want);
-}
-
-function renderListChunked(items) {
-  dom.result.innerHTML = "";
-  const chunkSize = 40;
-  let i = 0;
-
-  function step() {
-    const end = Math.min(i + chunkSize, items.length);
-    let html = "";
-    for (; i < end; i++) html += renderItemCard(items[i]);
-    dom.result.insertAdjacentHTML("beforeend", html);
-
-    if (i < items.length) requestAnimationFrame(step);
-  }
-
-  requestAnimationFrame(step);
-}
-
-/* ============================================================
-   RENDER ENTRYPOINTS
-   ============================================================ */
-function renderSearchResults(query) {
-  const q = normalizeName(query);
-  dom.result.innerHTML = "";
-  if (!q) return;
-
-  const matches = state.items.filter(it => it.nameKey.includes(q));
-  if (!matches.length) {
-    dom.result.innerHTML = `<div class="line">No match</div>`;
-    return;
-  }
-
-  matches.sort((a,b) => {
-    const ap = a.nameKey.startsWith(q) ? 0 : 1;
-    const bp = b.nameKey.startsWith(q) ? 0 : 1;
-    if (ap !== bp) return ap - bp;
-    return a.name.localeCompare(b.name);
-  });
-
-  renderListChunked(matches);
-}
-
-function renderAllMode() {
-  const list = computeAllList();
-  renderListChunked(list);
-}
-
-/* ============================================================
-   UI EVENTS
-   ============================================================ */
-function attachEvents() {
-  dom.search.addEventListener("input", () => {
-    const v = dom.search.value;
-
-    if (v.trim()) {
-      setAllMode(false);
-      dom.instructions.style.display = "block";
-      state.expandedNames.clear();
-      renderSearchResults(v);
-    } else {
-      dom.instructions.style.display = "none";
-      dom.result.innerHTML = "";
-    }
-  });
-
-  dom.search.addEventListener("focus", () => {
-    if (dom.search.value) {
-      dom.search.value = "";
-      dom.result.innerHTML = "";
-    }
-    dom.instructions.style.display = "none";
-    setAllMode(false);
-  });
-
-  dom.clear.addEventListener("click", () => {
-    dom.search.value = "";
-    dom.search.focus();
-    dom.result.innerHTML = "";
-    dom.instructions.style.display = "none";
-    setAllMode(false);
-  });
-
-  dom.showAll.addEventListener("click", () => {
-    // Enter All mode (single list; filters just change that list)
-    setAllMode(true);
-    dom.instructions.style.display = "none";
-    dom.search.value = "";
-    state.expandedNames.clear();
-
-    state.activeFilter = "all";
-    setActiveFilterButton("all");
-    renderAllMode();
-  });
-
-  dom.filters.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-filter]");
-    if (!btn) return;
-
-    state.activeFilter = btn.getAttribute("data-filter") || "all";
-    setActiveFilterButton(state.activeFilter);
-
-    state.expandedNames.clear();
-    renderAllMode();
-  });
-
-  dom.result.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-action='toggle-full']");
-    if (!btn) return;
-
-    const key = btn.getAttribute("data-name") || "";
-    if (!key) return;
-
-    if (state.expandedNames.has(key)) state.expandedNames.delete(key);
-    else state.expandedNames.add(key);
-
-    if (state.viewMode === "all") renderAllMode();
-    else renderSearchResults(dom.search.value);
-  });
-}
+dom.showAll.onclick=()=>{
+  state.viewMode="all";
+  dom.filters.style.display="flex";
+};
 
 /* ============================================================
    BOOT
    ============================================================ */
-(async function init() {
-  attachEvents();
-
-  try {
-    await loadItemsMaster();
-    state.loaded = true;
-    setLoadedStatus();
-  } catch (err) {
-    console.error("loadData error:", err);
-    setStatus("Error loading data", "error");
+(async()=>{
+  try{
+    await loadItems();
+    await loadCrafting();
+    dom.status.textContent="Loaded";
+    dom.status.className="status loaded";
+  }catch(e){
+    console.error(e);
+    dom.status.textContent="Error loading data";
+    dom.status.className="status error";
   }
 })();
 </script>
