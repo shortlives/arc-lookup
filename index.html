@@ -274,7 +274,7 @@ async function loadItems(){
     }));
 
   if (!state.items.length){
-    throw new Error("[LOAD ERROR] 0 enabled items loaded from Items CSV.");
+    throw new Error("[LOAD ERROR] 0 enabled items loaded from Items CSV. To fix: Click on Spreadsheet button at top, go to CSV tab. It should be working now.");
   }
 }
 
@@ -600,3 +600,4 @@ dom.result.addEventListener("click", (e) => {
 
 </body>
 </html>
+
